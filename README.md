@@ -1,116 +1,115 @@
 # Skia-MonoGame Rendering
 
-This library allows a MonoGame application to use SkiaSharp's GPU rendering without interfering with regular MonoGame rendering.
-It comes with a sample application. It currently requires a DesktopGL rendering backend (will not work on DirectX), and it will not work on consoles without significant work, although it is technically possible. However, it will work fine for games targeting destkop platforms.
+A library that lets MonoGame and KNI applications use SkiaSharp's GPU rendering to produce `Texture2D`s — with zero-copy GPU texture sharing. Skia renders anti-aliased vector art, text, and 2D graphics directly into MonoGame textures without any CPU readback.
 
+## Platform Support
+
+| Platform | Backend | Status | How it works |
+|----------|---------|--------|--------------|
+| MonoGame 3.8.4 DesktopGL | OpenGL | Working | Shared GL context via SDL |
+| MonoGame 3.8.4 WindowsDX | D3D11 | Working | ANGLE (GL ES → D3D11 translation) on shared device |
+| MonoGame 3.8.5 DirectX | D3D11/D3D12 | Not started | |
+| MonoGame 3.8.5 Vulkan | Vulkan | Not started | |
+| KNI DesktopGL | OpenGL | Not started | |
+| KNI DirectX | D3D11 | Not started | |
+| KNI Android | GL ES | Not started | |
+| KNI WebGL (Blazor) | WebGL | Blocked | See [WebGL / WASM Status](#webgl--wasm-status) |
 
 ## Requirements
 
-Visual Studio 2022 and .NET 6.
+- .NET 8
+- Visual Studio 2022
+- MonoGame 3.8.4.1 (DesktopGL or WindowsDX)
+- SkiaSharp 3.119.2
 
-## Setup
-Reference the library and place the next lines of code on your MonoGame project (see below for detailed instructions).
+## Quick Start
 
-In your **game file** (such as `Game1.cs`) in the `Initialize()` method:
+Reference the appropriate library project for your platform:
+- **DesktopGL**: Reference `SkiaMonoGameRendering/SkiaMonoGameRendering.csproj`
+- **WindowsDX**: Reference `SkiaMonoGameRendering.WindowsDX/SkiaMonoGameRendering.WindowsDX.csproj`
+
+In your `Initialize()` method:
 ```cs
-SkiaGlManager.Initialize(GraphicsDevice);
+SkiaRenderer.Initialize(GraphicsDevice);
 ```
-And also in the **Draw()** method before `base.Draw()`:
+
+The correct backend (GL or ANGLE) is auto-detected at runtime. You can also specify one explicitly:
+```cs
+SkiaRenderer.Initialize(new SkiaGlBackend(), GraphicsDevice);     // DesktopGL
+SkiaRenderer.Initialize(new SkiaAngleBackend(), GraphicsDevice);  // WindowsDX
+```
+
+In your `Draw()` method, before drawing sprites:
 ```cs
 SkiaRenderer.Draw();
 ```
-## Implement ISkiaRenderable on your game classes
 
-These are the required *ISkiaRenderable* members:
+## Implement ISkiaRenderable
 
-**TargetWidth**: Width of the output texture.
+Create a class that implements `ISkiaRenderable`:
 
-**TargetHeight**: Height of the output texture.
+| Member | Description |
+|--------|-------------|
+| `TargetWidth` | Width of the output texture |
+| `TargetHeight` | Height of the output texture |
+| `TargetColorFormat` | SkiaSharp color format for the texture |
+| `ShouldRender` | Set to `false` when the texture doesn't need updating |
+| `ClearCanvasOnRender` | Whether to clear the canvas before drawing |
+| `DrawToSurface(SKSurface)` | Your SkiaSharp drawing code goes here |
+| `NotifyDrawnTexture(Texture2D)` | Receives the resulting MonoGame texture |
 
-**TargetColorFormat**: Format of the output texture.
-
-**ShouldRender**: Whether the texture is being updated. Set this to false when you don't need to update your texture.
-
-**DrawToSurface(SKSurface surface)**: This will be called if *ShouldRender* is *true*. This is the place to apply your SkiaSharp drawing commands to the argument *SKSurface*.
-
-**NotifyDrawnTexture(Texture2D texture)**: The resulting texture will be delivered here. It's a regular MonoGame texture ready to be painted to the screen.
-
-## Add your ISkiaRenderable's to the rendering list
-To add a renderable:
+Register your renderable:
 ```cs
-SkiaRenderer.AddRenderable(renderable);
-```
-To remove it:
-```cs
-SkiaRenderer.RemoveRenderable(renderable);
-```
-An exception will be thrown whether you try to add an already present renderable or you try to remove a renderable which hasn't been added. Be careful.
-
-## Example usage
-
-There's a project called **Sample** already set up with everything needed but if you wish to set it up yourself, these are the steps:
-
-First, you must clone the repository. At the time of this writing there are no prebuilt binaries, or NuGet packages, so you must compile the library yourself. The easiest way is to link this in your game project:
-
-1. Clone the project locally.
-1. Add **SkiaMonoGameRendering** project to your solution (.sln).
-2. Add a **SkiaMonoGameRendering** project reference to your MonoGame project (.csproj).
-3. Paste [SkiaEntity.cs ](https://github.com/mfigueirido/SkiaMonoGameRendering/blob/master/Sample/SkiaEntity.cs) into your MonoGame project root folder.
-4. Change the namespace of the file you just pasted to match your project namespace, so it can be easily found.
-5. Next you'll need to change your game class. This file is called **Game1.cs** by default in the MonoGame sample. You can follow this one as an example [Game1.cs ](https://github.com/mfigueirido/SkiaMonoGameRendering/blob/master/Sample/Game1.cs) or follow the next steps:
-
-You need to add this at **class scope**:
-```cs
-        private SkiaEntity _entity;
-
-        void DrawSkiaEntity()
-        {
-            var destinationRectangle = new Rectangle(0, 0, _entity.Texture.Width, _entity.Texture.Height);
-
-            _spriteBatch.Begin(SpriteSortMode.Deferred);
-            _spriteBatch.Draw(_entity.Texture, destinationRectangle, Color.White);
-            _spriteBatch.End();
-        }
-```
-Your **Initialize** method should look like this:
-```cs
-        protected override void Initialize()
-        {
-            SkiaGlManager.Initialize(GraphicsDevice);
-
-            _entity = new SkiaEntity();
-            _entity.Initialize();
-
-            base.Initialize();
-        }
-```
-And your **Draw** method should look like this:
-```cs
-        protected override void Draw(GameTime gameTime)
-        {
-            SkiaRenderer.Draw();
-
-            GraphicsDevice.Clear(Color.Black);
-
-            DrawSkiaEntity();
-
-            base.Draw(gameTime);
-        }
+SkiaRenderer.AddRenderable(myRenderable);
 ```
 
-Run your project and you're done. One beautiful big red circle rendered by Skia should show up:
-![imaxe](https://github.com/mfigueirido/SkiaMonoGameRendering/assets/24922404/01595870-08af-4a3a-b1f5-d4fed8516a5b)
+## Sample Projects
 
-## Using Skia Sharp
+- `Sample.MonoGame.DesktopGL/` — DesktopGL sample (cross-platform: Windows, Linux, macOS)
+- `Sample.MonoGame.WindowsDX/` — WindowsDX sample (Windows only)
+- `Test/` — More comprehensive test with dynamic add/remove, FPS counter, input handling
 
-The example [SkiaEntity.cs ](https://github.com/mfigueirido/SkiaMonoGameRendering/blob/master/Sample/SkiaEntity.cs) file renders a large, anti-aliased red circle. Skia rendering is performed by calling a Skia canvas to perform rendering. For example, the following code performs the actual circle rendering:
+Game logic is shared between samples — see `Game1.cs` and `SkiaEntity.cs`.
+
+## Architecture
+
+The library uses a backend abstraction (`SkiaBackend` base class) so each graphics API gets its own implementation. Core source files are shared across platform-specific library projects via linked includes:
+
+- `SkiaMonoGameRendering/` — DesktopGL library (core + `SkiaGlBackend`)
+- `SkiaMonoGameRendering.WindowsDX/` — WindowsDX library (shared core + `SkiaAngleBackend`)
+
+See `SkiaMonoGame-Rendering-Notes.md` for detailed technical documentation on how each backend works, including the ANGLE integration and D3D11 state management.
+
+## WebGL / WASM Status
+
+**GPU-accelerated Skia rendering in the browser is currently not possible from .NET.**
+
+This may be surprising since Skia is Chrome's rendering engine and is GPU-accelerated there. The difference:
+
+- **Chrome's Skia** runs as native C++ code *inside* the browser, with direct access to the GPU via the OS graphics API. It's not sandboxed.
+- **SkiaSharp in Blazor WASM** runs as WebAssembly *inside* the browser sandbox. The SkiaSharp NuGet package (`SkiaSharp.NativeAssets.WebAssembly`) only ships the **CPU rasterizer** — it does not wire up Skia's GL backend to the browser's WebGL context.
+- **Google's CanvasKit** is a separate WASM build of Skia that *does* include WebGL GPU support (used by Flutter Web, Google Docs, etc.), but it's a JavaScript library with no .NET wrapper.
+
+The Skia C++ code fully supports rendering via GL ES 2.0 (which is what WebGL is). The gap is purely in the .NET packaging — nobody has built the bridge between SkiaSharp's managed WASM build and the browser's WebGL context.
+
+A CPU-only fallback (Skia renders to a bitmap, then `SetData()` uploads to a WebGL texture) is feasible but defeats the zero-copy GPU purpose of this library.
+
+**If you have experience with SkiaSharp internals, WASM native interop, or CanvasKit, and are interested in helping bridge this gap, please open an issue.** Even a proof-of-concept showing `GRContext.CreateGl()` working against a browser WebGL context from .NET WASM would be a major contribution.
+
+## Using SkiaSharp
+
+The `DrawToSurface` callback gives you a full SkiaSharp `SKSurface` with GPU-accelerated canvas. For example, drawing an anti-aliased circle:
 
 ```cs
 surface.Canvas.DrawCircle(Radius, Radius, Radius, _paint);
 ```
 
-The Skia canvas can be used to render lots of types of graphics, and is especially useful for rendering anti-aliased vector art. 
+For more on SkiaSharp drawing, see the [SkiaSharp documentation](https://learn.microsoft.com/en-us/previous-versions/xamarin/xamarin-forms/user-interface/graphics/skiasharp/basics/).
 
-For more information on using SkiaSharp, see the SkiaSharp documentation:
+## License
 
-https://learn.microsoft.com/en-us/previous-versions/xamarin/xamarin-forms/user-interface/graphics/skiasharp/basics/
+MIT License. See [LICENSE.md](LICENSE.md).
+
+## Credits
+
+Originally created by [Miguel Anxo Figueirido](https://github.com/mfigueirido/SkiaMonoGameRendering). Multi-platform backend abstraction and WindowsDX/ANGLE support added by Victor Chelaru.

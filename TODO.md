@@ -13,7 +13,7 @@ This document tracks which framework/platform/backend combinations have been pro
 | KNI             | —       | DesktopGL | Desktop  | —                           | Not started | |
 | KNI             | —       | DirectX   | Desktop  | —                           | Not started | |
 | KNI             | —       | —         | Android  | —                           | Not started | |
-| KNI             | —       | WebGL     | Web      | —                           | Not started | Blazor-based |
+| KNI             | —       | WebGL     | Web      | —                           | Blocked     | SkiaSharp WASM has no GPU backend. CPU fallback possible but defeats purpose. See README. |
 
 ## Architecture
 

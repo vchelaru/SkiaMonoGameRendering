@@ -9,7 +9,12 @@
       "Bash(taskkill *)",
       "Bash(tasklist)",
       "Bash(echo \"EXIT: $?\")",
-      "Bash(dotnet sln *)"
+      "Bash(dotnet sln *)",
+      "WebFetch(domain:www.nuget.org)",
+      "WebFetch(domain:github.com)",
+      "Bash(gh issue *)",
+      "Bash(gh api *)",
+      "Bash(python3 -c \"import sys,json; [print\\(f['name']\\) for f in json.loads\\(sys.stdin.read\\(\\)\\)]\")"
     ]
   }
 }
