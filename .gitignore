@@ -12,3 +12,4 @@ Sample/bin
 Sample/obj
 Test/bin
 Test/obj
+**/Content/obj/
