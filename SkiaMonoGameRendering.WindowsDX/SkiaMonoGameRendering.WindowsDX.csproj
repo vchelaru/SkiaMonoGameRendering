@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>SkiaMonoGameRendering</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MonoGame.Framework.WindowsDX" Version="3.8.4.1" />
+    <PackageReference Include="SkiaSharp" Version="3.119.2" />
+  </ItemGroup>
+
+  <!-- Shared core files from the DesktopGL project -->
+  <ItemGroup>
+    <Compile Include="..\SkiaMonoGameRendering\SkiaBackend.cs" Link="SkiaBackend.cs" />
+    <Compile Include="..\SkiaMonoGameRendering\SkiaRenderer.cs" Link="SkiaRenderer.cs" />
+    <Compile Include="..\SkiaMonoGameRendering\ISkiaRenderable.cs" Link="ISkiaRenderable.cs" />
+    <Compile Include="..\SkiaMonoGameRendering\SkiaRenderableInfo.cs" Link="SkiaRenderableInfo.cs" />
+  </ItemGroup>
+
+</Project>

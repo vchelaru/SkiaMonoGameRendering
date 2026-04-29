@@ -12,7 +12,7 @@ namespace Sample
         public SKColorType TargetColorFormat { get => SKColorType.Rgba8888; }
         public bool ShouldRender { get => true; }
         public bool ClearCanvasOnRender { get => true; }
-        public float Radius { get; set; } = 300;
+        public float Radius { get; set; } = 100;
 
         bool _paintNeedsUpdate;
         SKColor _color = SKColors.Red;

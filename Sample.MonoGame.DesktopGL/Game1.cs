@@ -5,6 +5,10 @@ using SkiaMonoGameRendering;
 
 namespace Sample
 {
+    /// <summary>
+    /// Shared game logic for all platform samples. The correct SkiaBackend is
+    /// auto-detected at runtime based on which library assembly is referenced.
+    /// </summary>
     public class Game1 : Game
     {
         private GraphicsDeviceManager _graphics;
@@ -23,7 +27,7 @@ namespace Sample
 
         protected override void Initialize()
         {
-            SkiaGlManager.Initialize(GraphicsDevice);
+            SkiaRenderer.Initialize(GraphicsDevice);
 
             _entity = new SkiaEntity();
             _entity.Initialize();
@@ -48,6 +52,7 @@ namespace Sample
         {
             SkiaRenderer.Draw();
 
+            GraphicsDevice.SetRenderTarget(null);
             GraphicsDevice.Clear(Color.Black);
 
             DrawSkiaEntity();
@@ -57,6 +62,8 @@ namespace Sample
 
         void DrawSkiaEntity()
         {
+            if (_entity.Texture == null) return;
+
             var destinationRectangle = new Rectangle(0, 0, _entity.Texture.Width, _entity.Texture.Height);
 
             _spriteBatch.Begin(SpriteSortMode.Deferred);

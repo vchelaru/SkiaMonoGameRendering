@@ -169,7 +169,41 @@ Relevant points from the thread:
 
 ---
 
-## 7. Open questions to revisit when MG 3.8.5 ships
+## 7. WindowsDX / ANGLE implementation (completed)
+
+### What was built
+
+A working `SkiaAngleBackend` for MonoGame 3.8.4 WindowsDX. Skia renders into MonoGame's D3D11 textures via ANGLE with zero-copy GPU sharing.
+
+### Why ANGLE
+
+MonoGame WindowsDX uses D3D11. SkiaSharp's GPU backend speaks OpenGL. ANGLE (Google's GL-to-D3D11 translator, the same library Chrome uses for WebGL on Windows) bridges the two: Skia issues GL calls, ANGLE translates them into D3D11 operations on the same device.
+
+### The zero-copy trick
+
+`eglCreateDeviceANGLE(EGL_D3D11_DEVICE_ANGLE, mgDevicePtr)` wraps MonoGame's existing D3D11 device as an ANGLE EGL device. Both ANGLE and MonoGame now share the same GPU device. MonoGame-allocated textures can be imported into ANGLE via `eglCreatePbufferFromClientBuffer(EGL_D3D_TEXTURE_ANGLE, texturePtr)`, creating an EGL surface backed by the D3D11 texture. Skia renders to that surface; MonoGame reads the result — no copies involved.
+
+### The SwapDeviceContextState requirement
+
+This was the hardest part. ANGLE modifies D3D11 state (shaders, blend modes, render targets, viewports, etc.) when it renders. MonoGame caches its own copy of D3D11 state internally and only re-applies when it detects a change. After ANGLE runs, MonoGame's cache is stale — it thinks the correct state is already set, so SpriteBatch silently draws nothing.
+
+We tried several approaches (dirty flags, dummy state objects, ClearState) before finding that D3D11.1's `SwapDeviceContextState` is the correct solution. It atomically saves ALL context state before ANGLE and restores it after. This is the mechanism Microsoft designed for exactly this scenario (multiple rendering clients sharing one device).
+
+### The RenderTarget2D requirement
+
+ANGLE's `eglCreatePbufferFromClientBuffer` requires the D3D11 texture to have `D3D11_BIND_RENDER_TARGET`. MonoGame's `Texture2D` only creates textures with `D3D11_BIND_SHADER_RESOURCE`. `RenderTarget2D` (a Texture2D subclass) creates textures with both flags, which is what ANGLE needs.
+
+### The lazy texture allocation workaround
+
+MonoGame WindowsDX doesn't create the D3D11 GPU resource in the `Texture2D` constructor — it defers allocation until the texture is first used. The backend calls `SetData(new byte[...])` to force allocation so the native pointer can be extracted for ANGLE. This is wasteful and should be replaced with a cheaper trigger.
+
+### ANGLE DLL resolution
+
+ANGLE requires `libEGL.dll` and `libGLESv2.dll` at runtime. The resolver in `AngleEgl.cs` looks for them in three places: app-local, NuGet runtimes folder, then Edge WebView's system copies at `C:\Windows\System32\Microsoft-Edge-WebView\`. Shipping your own ANGLE DLLs is recommended for production.
+
+---
+
+## 8. Open questions to revisit when MG 3.8.5 ships
 
 - Is `GRContext.CreateDirect3D` exposed and working in the SkiaSharp version available at that time?
 - Has ANGLE's D3D12 backend moved off experimental status?

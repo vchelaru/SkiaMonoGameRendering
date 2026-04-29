@@ -38,7 +38,7 @@ namespace Test
 
         protected override void Initialize()
         {
-            SkiaGlManager.Initialize(GraphicsDevice);
+            SkiaRenderer.Initialize(new SkiaGlBackend(), GraphicsDevice);
 
             base.Initialize();
         }

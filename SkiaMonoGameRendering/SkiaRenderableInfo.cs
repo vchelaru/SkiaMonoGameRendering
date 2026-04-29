@@ -1,35 +1,33 @@
-﻿using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Graphics;
 using SkiaSharp;
 
 namespace SkiaMonoGameRendering
 {
     internal struct SkiaRenderableInfo
     {
-        internal int TextureId;
+        internal object TextureHandle;
         internal Texture2D Texture;
-        internal int FramebufferId;
-        internal int RenderbufferId;
         internal SKSurface Surface;
         internal GRBackendRenderTarget BackendRenderTarget;
+        internal object RenderState;
 
-        internal SkiaRenderableInfo(int textureId, Texture2D texture)
+        internal SkiaRenderableInfo(object textureHandle, Texture2D texture)
         {
-            TextureId = textureId;
+            TextureHandle = textureHandle;
             Texture = texture;
-            FramebufferId = 0;
-            RenderbufferId = 0;
             Surface = null;
             BackendRenderTarget = null;
+            RenderState = null;
         }
 
-        internal SkiaRenderableInfo(int textureId, Texture2D texture, int framebufferId, int renderbufferId, SKSurface surface, GRBackendRenderTarget backendRenderTarget)
+        internal SkiaRenderableInfo(object textureHandle, Texture2D texture,
+            SKSurface surface, GRBackendRenderTarget backendRenderTarget, object renderState)
         {
-            TextureId = textureId;
+            TextureHandle = textureHandle;
             Texture = texture;
-            FramebufferId = framebufferId;
-            RenderbufferId = renderbufferId;
             Surface = surface;
             BackendRenderTarget = backendRenderTarget;
+            RenderState = renderState;
         }
 
         internal void ClearReferences()
@@ -37,6 +35,8 @@ namespace SkiaMonoGameRendering
             Texture = null;
             BackendRenderTarget = null;
             Surface = null;
+            RenderState = null;
+            TextureHandle = null;
         }
     }
 }

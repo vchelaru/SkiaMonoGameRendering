@@ -1,9 +1,7 @@
 ﻿using Microsoft.Xna.Framework.Graphics;
-using SkiaSharp;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using static SkiaMonoGameRendering.GlConstants;
-using static SkiaMonoGameRendering.GlWrapper;
 
 namespace SkiaMonoGameRendering
 {
@@ -144,9 +142,9 @@ namespace SkiaMonoGameRendering
             _loadFunctionMethod = mgGlType.GetMethod("LoadFunction", BindingFlags.NonPublic | BindingFlags.Static);
         }
 
-        internal static IntPtr GetMgWindowId()
+        internal static IntPtr GetMgWindowId(GraphicsDevice graphicsDevice)
         {
-            var context = _contextProperty.GetValue(SkiaGlManager.GraphicsDevice);
+            var context = _contextProperty.GetValue(graphicsDevice);
             return (IntPtr)_winHandleField.GetValue(context);
         }
 
@@ -317,86 +315,4 @@ namespace SkiaMonoGameRendering
         }
     }
 
-    /// <summary>
-    /// Manages contexts and loads all the needed functions for Skia drawing. You should 
-    /// call Initialize() once when the game is created passing a valid GraphicsDevice.
-    /// </summary>
-    public static class SkiaGlManager
-    {
-        internal static GraphicsDevice GraphicsDevice { get; private set; }
-
-        static bool _initialized;
-        static IntPtr _windowId;
-        static IntPtr _mgContextId;
-        static IntPtr _skContextId;
-
-        internal static GRContext SkiaGrContext { get; private set; }
-
-        public static void Initialize(GraphicsDevice graphicsDevice)
-        {
-            if (_initialized)
-                throw new InvalidOperationException("SkiaGlManager is already initialized.");
-
-            GraphicsDevice = graphicsDevice;
-            GraphicsDevice.DeviceReset += GraphicsDevice_DeviceReset;
-
-            // Get the SDL window ID. We need it to create new contexts.
-            _windowId = GetMgWindowId();
-
-            // The MonoGame context is already created by the MG library. Here we get the ID.
-            _mgContextId = SDL_GL_GetCurrentContext();
-
-            // Load the MonoGame context functions that we will use
-            MgGlFunctions.LoadFunctions();
-
-            // This will tell OpenGL that the next context created will share objects with the main context
-            var setAttributeResult = SDL_GL_SetAttribute(SDL_GL_SHARE_WITH_CURRENT_CONTEXT, 1);
-
-            if (setAttributeResult < 0)
-                throw new Exception("SDL_GL_SetAttribute failed.");
-
-            // Create the alternate context for Skia
-            _skContextId = SDL_GL_CreateContext(_windowId);
-
-            if (_skContextId == IntPtr.Zero)
-                throw new Exception("SDL_GL_CreateContext failed.");
-
-            // Set the Skia context as current
-            SetSkiaContextAsCurrent();
-
-            // Load the Skia context functions that we will use
-            SkGlFunctions.LoadFunctions();
-
-            // Create the Skia context object that will be using the alternate OpenGL context
-            SkiaGrContext = GRContext.CreateGl();
-
-            // Now that everything has been set up make the default context current again so MonoGame runs normally
-            SetMonoGameContextAsCurrent();
-
-            _initialized = true;
-        }
-
-        private static void SetContextAsCurrent(IntPtr contextId)
-        {
-            var makeCurrentResult = MakeCurrent(_windowId, contextId);
-
-            if (makeCurrentResult < 0)
-                throw new Exception("SDL_GL_MakeCurrent failed.");
-        }
-
-        internal static void SetMonoGameContextAsCurrent()
-        {
-            SetContextAsCurrent(_mgContextId);
-        }
-
-        internal static void SetSkiaContextAsCurrent()
-        {
-            SetContextAsCurrent(_skContextId);
-        }
-
-        private static void GraphicsDevice_DeviceReset(object sender, EventArgs e)
-        {
-            // TODO: Is there something that needs to be done when the device is reset?
-        }
-    }
 }

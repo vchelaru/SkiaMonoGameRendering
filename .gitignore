@@ -6,10 +6,6 @@
 *.csvSettings
 *.sln.metaproj
 packages/
-SkiaMonoGameRendering/bin/
-SkiaMonoGameRendering/obj/
-Sample/bin
-Sample/obj
-Test/bin
-Test/obj
+**/bin/
+**/obj/
 **/Content/obj/
