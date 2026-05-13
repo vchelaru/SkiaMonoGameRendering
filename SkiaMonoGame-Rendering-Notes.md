@@ -203,7 +203,25 @@ ANGLE requires `libEGL.dll` and `libGLESv2.dll` at runtime. The resolver in `Ang
 
 ---
 
-## 8. Open questions to revisit when MG 3.8.5 ships
+## 8. WebGL / KNI (Blazor WebAssembly)
+
+Full discussion is in a dedicated document: **`WebGL-KNI-Integration.md`** at the repo root. That doc covers:
+
+- The problem (Gum on KNI with SpriteBatch interleaving and RenderTarget consumption).
+- Why the desktop trick doesn't transfer to WebGL (spec-mandated no cross-context object sharing).
+- The state-cache problem — the real obstacle when two libraries drive one context, and why it bit the WindowsDX/ANGLE port in section 7.
+- The four options (A: shared WebGL context; B: CPU readback; C: two-canvas overlay; D: cross-context GPU blit via `texImage2D(canvas)`) with comparison table.
+- Why Option D is the recommended path, plus the `OffscreenCanvas + transferToImageBitmap` fast-path variant.
+- Option A reconsidered with a KNI-side `InvalidateStateCache()` patch reducing its implementation cost significantly.
+- Spike v0 status: standalone HTML in `Spikes/webgl-blit-v0/`, initial results (Chrome/Edge ~0.25 ms, Firefox ~25 ms), four alternative upload paths added to test whether any rescue Firefox.
+- KNI-side changes worth making if forking KNI, and which of them are upstreamable to KNI vs better kept downstream.
+- Where to pick up: finish v0 Firefox measurements, then v1 (real KNI canvas), then v2 (full interleaving demo).
+
+Short version of the recommendation: **build Option D**, which on Chrome/Edge measures ~0.25 ms upload at 1080p; Firefox unknown pending alternative-path measurement; fall back to Option A (with the KNI-fork state-cache patch) only if Firefox can't be rescued.
+
+---
+
+## 9. Open questions to revisit when MG 3.8.5 ships
 
 - Is `GRContext.CreateDirect3D` exposed and working in the SkiaSharp version available at that time?
 - Has ANGLE's D3D12 backend moved off experimental status?
