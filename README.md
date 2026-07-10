@@ -13,14 +13,14 @@ A library that lets MonoGame and KNI applications use SkiaSharp's GPU rendering 
 | KNI DesktopGL | OpenGL | Not started | |
 | KNI DirectX | D3D11 | Not started | |
 | KNI Android | GL ES | Not started | |
-| KNI WebGL (Blazor) | WebGL | Blocked | See [WebGL / WASM Status](#webgl--wasm-status) |
+| KNI WebGL (Blazor) | WebGL2 | Production candidate | Cross-context `texSubImage2D(canvas)` through a patched public KNI API |
 
 ## Requirements
 
 - .NET 8
 - Visual Studio 2022
 - MonoGame 3.8.4.1 (DesktopGL or WindowsDX)
-- SkiaSharp 3.119.2
+- SkiaSharp 3.119.4 for WebGL; 3.119.2 for the existing desktop projects
 
 ## Quick Start
 
@@ -67,6 +67,7 @@ SkiaRenderer.AddRenderable(myRenderable);
 
 - `Sample.MonoGame.DesktopGL/` — DesktopGL sample (cross-platform: Windows, Linux, macOS)
 - `Sample.MonoGame.WindowsDX/` — WindowsDX sample (Windows only)
+- `Sample.Kni.WebGL/` — KNI Blazor WebAssembly sample using the patched canvas-upload API
 - `Test/` — More comprehensive test with dynamic add/remove, FPS counter, input handling
 
 Game logic is shared between samples — see `Game1.cs` and `SkiaEntity.cs`.
@@ -82,19 +83,17 @@ See `SkiaMonoGame-Rendering-Notes.md` for detailed technical documentation on ho
 
 ## WebGL / WASM Status
 
-**GPU-accelerated Skia rendering in the browser is currently not possible from .NET.**
+The WebGL backend is implemented in `SkiaMonoGameRendering.Kni.WebGL`. It creates a synchronous SkiaSharp WebGL2 source host, flushes the current Skia frame, and uploads that canvas directly into a preallocated KNI `Texture2D` with `texSubImage2D`. Production code has no `readPixels`, managed pixel buffer, or `Texture2D.SetData(byte[])` path.
 
-This may be surprising since Skia is Chrome's rendering engine and is GPU-accelerated there. The difference:
+KNI does not yet expose canvas upload upstream, so the repository pins a KNI commit and carries a small public-API patch. Bootstrap it before building the browser projects:
 
-- **Chrome's Skia** runs as native C++ code *inside* the browser, with direct access to the GPU via the OS graphics API. It's not sandboxed.
-- **SkiaSharp in Blazor WASM** runs as WebAssembly *inside* the browser sandbox. The SkiaSharp NuGet package (`SkiaSharp.NativeAssets.WebAssembly`) only ships the **CPU rasterizer** — it does not wire up Skia's GL backend to the browser's WebGL context.
-- **Google's CanvasKit** is a separate WASM build of Skia that *does* include WebGL GPU support (used by Flutter Web, Google Docs, etc.), but it's a JavaScript library with no .NET wrapper.
+```powershell
+.\eng\bootstrap-kni-webgl.ps1
+dotnet build Sample.Kni.WebGL\Sample.Kni.WebGL.csproj -c Release
+dotnet run --project Sample.Kni.WebGL\Sample.Kni.WebGL.csproj -c Release --no-build
+```
 
-The Skia C++ code fully supports rendering via GL ES 2.0 (which is what WebGL is). The gap is purely in the .NET packaging — nobody has built the bridge between SkiaSharp's managed WASM build and the browser's WebGL context.
-
-A CPU-only fallback (Skia renders to a bitmap, then `SetData()` uploads to a WebGL texture) is feasible but defeats the zero-copy GPU purpose of this library.
-
-**If you have experience with SkiaSharp internals, WASM native interop, or CanvasKit, and are interested in helping bridge this gap, please open an issue.** Even a proof-of-concept showing `GRContext.CreateGl()` working against a browser WebGL context from .NET WASM would be a major contribution.
+The sample proves SpriteBatch interleaving, render-target consumption, shader sampling, animated Gum/Skia content, pointer/touch/wheel/text input, fractional DPR handling, and backend recreation. See `docs/webgl/quickstart.md`, `docs/webgl/validated-baseline.md`, and `docs/documentation/SkiaWebGlBackend.md` for the exact contract and support status.
 
 ## Using SkiaSharp
 

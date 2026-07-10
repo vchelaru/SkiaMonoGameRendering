@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>WebGL canvas upload benchmark</title>
+  <style>
+    body { margin: 0; padding: 16px; color: #e8edf1; background: #171a1f; font: 13px system-ui,sans-serif; }
+    h1 { margin: 0 0 12px; font-size: 18px; }
+    .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; margin-bottom: 14px; }
+    label { display: grid; gap: 4px; color: #aeb8c0; }
+    select, button { min-height: 32px; color: #eef2f5; background: #292f36; border: 1px solid #46505a; border-radius: 4px; padding: 4px 9px; }
+    button { cursor: pointer; }
+    .canvases { display: grid; grid-template-columns: repeat(2,minmax(260px,480px)); gap: 12px; }
+    canvas { width: 100%; aspect-ratio: 16/9; display: block; background: #000; }
+    pre { margin-top: 14px; padding: 12px; min-height: 180px; overflow: auto; background: #20252b; border-radius: 4px; }
+    @media (max-width: 700px) { .canvases { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <h1>Cross-context canvas upload benchmark</h1>
+  <div class="toolbar">
+    <label>Resolution
+      <select id="resolution"><option>1920x1080</option><option>2560x1440</option><option>3840x2160</option></select>
+    </label>
+    <label>Path
+      <select id="path">
+        <option value="texSubImage2D">texSubImage2D(canvas)</option>
+        <option value="texImage2D">texImage2D(canvas)</option>
+        <option value="imageBitmap">createImageBitmap + texSubImage2D</option>
+        <option value="offscreenBitmap">OffscreenCanvas + ImageBitmap</option>
+        <option value="readPixels">readPixels baseline</option>
+      </select>
+    </label>
+    <label>Sequential renderables
+      <select id="renderable-count"><option>1</option><option>2</option><option>4</option></select>
+    </label>
+    <button id="run">Run 120 + 600 frames</button>
+    <button id="export" disabled>Export JSON</button>
+  </div>
+  <div class="canvases"><canvas id="source"></canvas><canvas id="destination"></canvas></div>
+  <pre id="report">Ready.</pre>
+  <script src="benchmark.js"></script>
+</body>
+</html>

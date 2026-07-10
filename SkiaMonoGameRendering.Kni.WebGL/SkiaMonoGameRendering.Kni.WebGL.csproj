@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+  <Import Project="..\eng\Versions.props" />
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <SupportedOSPlatformVersion>browser</SupportedOSPlatformVersion>
+    <PackageId>SkiaMonoGameRendering.Kni.WebGL</PackageId>
+    <Version>$(WebGlPackageVersion)</Version>
+    <Description>GPU SkiaSharp to KNI Texture2D rendering for Blazor WebGL.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseFile>LICENSE.md</PackageLicenseFile>
+    <RepositoryUrl>https://github.com/vchelaru/SkiaMonoGameRendering</RepositoryUrl>
+    <KniSourceRoot Condition="'$(KniSourceRoot)' == ''">$(MSBuildThisFileDirectory)..\.artifacts\kni</KniSourceRoot>
+    <UseKniPackages Condition="'$(UseKniPackages)' == ''">false</UseKniPackages>
+  </PropertyGroup>
+
+  <Target Name="RequirePatchedKni" BeforeTargets="ResolveProjectReferences"
+          Condition="'$(UseKniPackages)' != 'true' and !Exists('$(KniSourceRoot)\src\Xna.Framework.Graphics\Xna.Framework.Graphics.csproj')">
+    <Error Text="Patched KNI sources are missing. Run eng\bootstrap-kni-webgl.ps1 first or set KniSourceRoot." />
+  </Target>
+
+  <ItemGroup Condition="'$(UseKniPackages)' != 'true'">
+    <ProjectReference Include="$(KniSourceRoot)\src\Xna.Framework.Graphics\Xna.Framework.Graphics.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(UseKniPackages)' == 'true'">
+    <PackageReference Include="nkast.Xna.Framework.Graphics" Version="[$(KniPatchedPackageVersion)]" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SkiaSharp" Version="[$(SkiaSharpVersion)]" />
+    <PackageReference Include="SkiaSharp.Views.Blazor" Version="[$(SkiaSharpVersion)]" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\SkiaMonoGameRendering\SkiaBackend.cs" Link="Core\SkiaBackend.cs" />
+    <Compile Include="..\SkiaMonoGameRendering\SkiaRenderer.cs" Link="Core\SkiaRenderer.cs" />
+    <Compile Include="..\SkiaMonoGameRendering\SkiaTarget.cs" Link="Core\SkiaTarget.cs" />
+    <Compile Include="..\SkiaMonoGameRendering\ISkiaRenderable.cs" Link="Core\ISkiaRenderable.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\LICENSE.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+</Project>
