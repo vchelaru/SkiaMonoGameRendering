@@ -18,7 +18,7 @@
     <Compile Include="..\SkiaMonoGameRendering\SkiaBackend.cs" Link="SkiaBackend.cs" />
     <Compile Include="..\SkiaMonoGameRendering\SkiaRenderer.cs" Link="SkiaRenderer.cs" />
     <Compile Include="..\SkiaMonoGameRendering\ISkiaRenderable.cs" Link="ISkiaRenderable.cs" />
-    <Compile Include="..\SkiaMonoGameRendering\SkiaRenderableInfo.cs" Link="SkiaRenderableInfo.cs" />
+    <Compile Include="..\SkiaMonoGameRendering\SkiaTarget.cs" Link="SkiaTarget.cs" />
   </ItemGroup>
 
 </Project>

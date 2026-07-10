@@ -4,6 +4,10 @@ Comprehensive notes on how to extend SkiaMonoGameRendering's zero-copy Skia-to-M
 
 This is a sibling document to `SkiaMonoGame-Rendering-Notes.md`, focused entirely on the WebGL/KNI target. The general background on the SkiaMonoGameRendering library (mechanism, current OpenGL implementation, WindowsDX/ANGLE port) lives in that document; read sections 1–7 there before reading this.
 
+## Implementation status (2026-07-10)
+
+Option D is implemented in `SkiaMonoGameRendering.Kni.WebGL` with a synchronous Skia host and a pinned public KNI canvas-upload patch. The integrated sample covers interleaving, render targets, shader sampling, Gum rendering, pointer/touch/wheel/text input, fractional DPR, upload-path diagnostics, context loss, and backend recreation. See `docs/webgl/validated-baseline.md` for the exact pins and the remaining browser/hardware acceptance gates.
+
 ---
 
 ## 1. Problem statement

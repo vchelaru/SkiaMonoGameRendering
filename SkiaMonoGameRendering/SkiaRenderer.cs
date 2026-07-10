@@ -1,82 +1,86 @@
 using Microsoft.Xna.Framework.Graphics;
 using SkiaSharp;
-using System.Collections.Generic;
-using System;
 
 namespace SkiaMonoGameRendering
 {
     public static class SkiaRenderer
     {
-        static SkiaBackend _backend;
+        private static SkiaBackend? _backend;
+        private static GraphicsDevice? _graphicsDevice;
+        private static readonly List<ISkiaRenderable> _renderables = new();
+        private static readonly HashSet<ISkiaRenderable> _renderablesToRemove = new();
+        private static readonly Dictionary<ISkiaRenderable, SkiaTarget> _targets = new();
+        private static readonly List<SkiaTarget> _targetsToDispose = new();
 
-        public static int TextureCount
-        {
-            get
-            {
-                int count = 0;
-
-                foreach (var info in _renderableInfos.Values)
-                {
-                    if (info.Texture != null)
-                        count++;
-                }
-
-                return count;
-            }
-        }
-
-        public static int RenderableCount { get { return _renderables.Count - _renderablesToRemove.Count; } }
-
-        static readonly List<ISkiaRenderable> _renderables = new();
-        static readonly List<ISkiaRenderable> _renderablesToRemove = new();
-        static readonly Dictionary<ISkiaRenderable, SkiaRenderableInfo> _renderableInfos = new();
-        static readonly List<SkiaRenderableInfo> _renderableInfosToClear = new();
+        public static int TextureCount => _targets.Count;
+        public static int RenderableCount => _renderables.Count - _renderablesToRemove.Count;
+        public static bool IsInitialized => _backend != null;
 
         public static void Initialize(SkiaBackend backend, GraphicsDevice graphicsDevice)
         {
+            ArgumentNullException.ThrowIfNull(backend);
+            ArgumentNullException.ThrowIfNull(graphicsDevice);
+
+            if (_backend != null)
+            {
+                if (ReferenceEquals(_backend, backend) && ReferenceEquals(_graphicsDevice, graphicsDevice))
+                    return;
+
+                throw new InvalidOperationException(
+                    "SkiaRenderer is already initialized. Call SkiaRenderer.Dispose() before changing the backend or GraphicsDevice.");
+            }
+
+            backend.Initialize(graphicsDevice);
             _backend = backend;
-            _backend.Initialize(graphicsDevice);
+            _graphicsDevice = graphicsDevice;
         }
 
         /// <summary>
         /// Auto-detects the correct backend for the current MonoGame platform.
-        /// Looks for SkiaBackend subclasses in all loaded assemblies.
+        /// Explicit initialization is recommended for trimmed applications.
         /// </summary>
         public static void Initialize(GraphicsDevice graphicsDevice)
         {
             var backendType = FindBackendType()
-                ?? throw new Exception(
-                    "Could not auto-detect a SkiaBackend. Make sure the correct " +
-                    "SkiaMonoGameRendering library (DesktopGL or WindowsDX) is referenced.");
+                ?? throw new InvalidOperationException(
+                    "Could not auto-detect a SkiaBackend. Reference the platform package or initialize an explicit backend.");
 
-            var backend = (SkiaBackend)Activator.CreateInstance(backendType);
+            var backend = (SkiaBackend?)Activator.CreateInstance(backendType)
+                ?? throw new InvalidOperationException($"Could not create backend '{backendType.FullName}'.");
             Initialize(backend, graphicsDevice);
         }
 
-        static Type FindBackendType()
+        private static Type? FindBackendType()
         {
-            foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
             {
                 try
                 {
-                    foreach (var type in asm.GetTypes())
+                    foreach (var type in assembly.GetTypes())
                     {
                         if (!type.IsAbstract && type.IsSubclassOf(typeof(SkiaBackend)))
                             return type;
                     }
                 }
-                catch (System.Reflection.ReflectionTypeLoadException) { }
+                catch (System.Reflection.ReflectionTypeLoadException)
+                {
+                }
             }
+
             return null;
         }
 
         public static bool IsManaging(ISkiaRenderable renderable)
         {
+            ArgumentNullException.ThrowIfNull(renderable);
             return _renderables.Contains(renderable) && !_renderablesToRemove.Contains(renderable);
         }
 
         public static void AddRenderable(ISkiaRenderable renderable)
         {
+            ArgumentNullException.ThrowIfNull(renderable);
+            EnsureInitialized();
+
             if (IsManaging(renderable))
                 throw new ArgumentException("The renderable is already being managed.", nameof(renderable));
 
@@ -85,168 +89,192 @@ namespace SkiaMonoGameRendering
 
         public static void RemoveRenderable(ISkiaRenderable renderable)
         {
+            ArgumentNullException.ThrowIfNull(renderable);
+
             if (!IsManaging(renderable))
-                throw new ArgumentException("Can't remove the renderable because it isn't managed.", nameof(renderable));
+                throw new ArgumentException("The renderable is not managed.", nameof(renderable));
 
-            if (!_renderablesToRemove.Contains(renderable))
-                _renderablesToRemove.Add(renderable);
-        }
-
-        static SurfaceFormat SkColorFormatToMgColorFormat(SKColorType color)
-        {
-            switch (color)
-            {
-                case SKColorType.Rgba1010102:
-                    return SurfaceFormat.Rgba1010102;
-                case SKColorType.Rgba16161616:
-                    return SurfaceFormat.Rgba64;
-                case SKColorType.Alpha8:
-                    return SurfaceFormat.Alpha8;
-#if !FNA
-                case SKColorType.Bgra8888:
-                    return SurfaceFormat.Bgra32;
-#endif
-                case SKColorType.Rg1616:
-                    return SurfaceFormat.Rg32;
-                default:
-                    return SurfaceFormat.Color;
-            }
-        }
-
-        static SkiaRenderableInfo CreateNewTextureAndInfo(ISkiaRenderable renderable, SkiaRenderableInfo? oldInfo)
-        {
-            if (oldInfo.HasValue)
-                _renderableInfosToClear.Add(oldInfo.Value);
-
-            var texture = _backend.CreateTexture(renderable.TargetWidth, renderable.TargetHeight,
-                SkColorFormatToMgColorFormat(renderable.TargetColorFormat));
-
-            var textureHandle = _backend.CaptureTextureHandle(texture);
-
-            return new SkiaRenderableInfo(textureHandle, texture);
+            _renderablesToRemove.Add(renderable);
         }
 
         public static void Draw()
         {
-            var doAnyNeedToRender = false;
+            var backend = EnsureInitialized();
 
-            for (int i = 0; i < _renderables.Count; i++)
+            PrepareTargets(backend);
+            DisposeSkiaResources(backend);
+
+            var beganDraw = false;
+            try
             {
-                var renderable = _renderables[i];
-
-                if (renderable.ShouldRender && renderable.TargetWidth > 0 && renderable.TargetHeight > 0)
+                foreach (var renderable in _renderables)
                 {
-                    if (_renderableInfos.TryGetValue(renderable, out SkiaRenderableInfo info))
+                    if (_renderablesToRemove.Contains(renderable) || !CanRender(renderable))
+                        continue;
+
+                    if (!beganDraw)
                     {
-                        if (info.Texture == null || renderable.TargetWidth != info.Texture.Width || renderable.TargetHeight != info.Texture.Height
-                            || SkColorFormatToMgColorFormat(renderable.TargetColorFormat) != info.Texture.Format)
-                        {
-                            _renderableInfos[renderable] = CreateNewTextureAndInfo(renderable, info);
-                        }
+                        backend.BeginDraw();
+                        beganDraw = true;
                     }
-                    else
+
+                    var target = _targets[renderable];
+                    backend.Render(target, renderable);
+                    renderable.NotifyDrawnTexture(target.Texture);
+                }
+            }
+            finally
+            {
+                try
+                {
+                    if (beganDraw)
+                        backend.EndDraw();
+                }
+                finally
+                {
+                    try
                     {
-                        _renderableInfos.Add(renderable, CreateNewTextureAndInfo(renderable, null));
+                        DisposeGraphicsResources();
+                    }
+                    finally
+                    {
+                        CompleteRemovals();
                     }
                 }
-                doAnyNeedToRender = doAnyNeedToRender || renderable.ShouldRender;
+            }
+        }
+
+        public static void Dispose()
+        {
+            if (_backend == null)
+            {
+                ClearCollections();
+                return;
             }
 
-            if (!doAnyNeedToRender)
-                return;
+            var backend = _backend;
+            _targetsToDispose.AddRange(_targets.Values);
+            _targets.Clear();
 
-            _backend.BeginDraw();
-
-            for (int i = 0; i < _renderables.Count; i++)
+            try
             {
-                var renderable = _renderables[i];
+                try
+                {
+                    DisposeSkiaResources(backend);
+                }
+                finally
+                {
+                    DisposeGraphicsResources();
+                }
+            }
+            finally
+            {
+                try
+                {
+                    backend.Dispose();
+                }
+                finally
+                {
+                    _backend = null;
+                    _graphicsDevice = null;
+                    ClearCollections();
+                }
+            }
+        }
 
-                if (!renderable.ShouldRender)
+        private static void PrepareTargets(SkiaBackend backend)
+        {
+            foreach (var renderable in _renderables)
+            {
+                if (_renderablesToRemove.Contains(renderable))
+                {
+                    QueueTargetForDisposal(renderable);
+                    continue;
+                }
+
+                if (!CanRender(renderable))
                     continue;
 
-                int textureWidth = renderable.TargetWidth;
-                int textureHeight = renderable.TargetHeight;
-                var skColor = renderable.TargetColorFormat;
-                var info = _renderableInfos[renderable];
-
-                if (info.Surface == null || info.BackendRenderTarget == null)
+                var format = SkColorFormatToMgColorFormat(renderable.TargetColorFormat);
+                if (_targets.TryGetValue(renderable, out var existing) &&
+                    (existing.Width != renderable.TargetWidth ||
+                     existing.Height != renderable.TargetHeight ||
+                     existing.Format != format))
                 {
-                    var (surface, backendRT) = _backend.CreateSurface(
-                        info.TextureHandle, info.Texture, textureWidth, textureHeight, skColor, out var renderState);
-
-                    _renderableInfos[renderable] = new SkiaRenderableInfo(
-                        info.TextureHandle, info.Texture, surface, backendRT, renderState);
-                    info = _renderableInfos[renderable];
+                    QueueTargetForDisposal(renderable);
                 }
 
-                _backend.BindForDrawing(info.RenderState);
-
-                if (renderable.ClearCanvasOnRender)
-                    info.Surface.Canvas.Clear();
-
-                renderable.DrawToSurface(info.Surface);
-                info.Surface.Flush();
-
-                _backend.UnbindAfterDrawing();
-
-                renderable.NotifyDrawnTexture(info.Texture);
-            }
-
-            ManageSkiaDataToClear();
-
-            _backend.EndDraw();
-
-            ManageMonoGameDataToClear();
-        }
-
-        private static void ManageSkiaDataToClear()
-        {
-            for (int i = 0; i < _renderablesToRemove.Count; i++)
-            {
-                var renderable = _renderablesToRemove[i];
-                if (_renderableInfos.TryGetValue(renderable, out var info))
-                {
-                    info.Surface?.Dispose();
-                    info.BackendRenderTarget?.Dispose();
-                    if (info.RenderState != null)
-                        _backend.DisposeRenderState(info.RenderState);
-                }
-            }
-
-            for (int i = 0; i < _renderableInfosToClear.Count; i++)
-            {
-                var info = _renderableInfosToClear[i];
-                info.Surface?.Dispose();
-                info.BackendRenderTarget?.Dispose();
-                if (info.RenderState != null)
-                    _backend.DisposeRenderState(info.RenderState);
+                if (!_targets.ContainsKey(renderable))
+                    _targets.Add(renderable, backend.CreateTarget(renderable.TargetWidth, renderable.TargetHeight, format));
             }
         }
 
-        private static void ManageMonoGameDataToClear()
+        private static void QueueTargetForDisposal(ISkiaRenderable renderable)
         {
-            for (int i = 0; i < _renderablesToRemove.Count; i++)
+            if (_targets.Remove(renderable, out var target))
+                _targetsToDispose.Add(target);
+        }
+
+        private static void DisposeSkiaResources(SkiaBackend backend)
+        {
+            if (_targetsToDispose.Count == 0)
+                return;
+
+            backend.BeginDraw();
+            try
             {
-                var renderable = _renderablesToRemove[i];
-                if (_renderableInfos.TryGetValue(renderable, out var info))
-                {
-                    info.Texture?.Dispose();
-                    info.ClearReferences();
-                    _renderableInfos.Remove(renderable);
-                }
-
-                _renderables.Remove(renderable);
+                foreach (var target in _targetsToDispose)
+                    target.DisposeSkiaResources();
             }
-
-            for (int i = 0; i < _renderableInfosToClear.Count; i++)
+            finally
             {
-                var info = _renderableInfosToClear[i];
-                info.Texture?.Dispose();
-                info.ClearReferences();
+                backend.EndDraw();
             }
+        }
 
+        private static void DisposeGraphicsResources()
+        {
+            foreach (var target in _targetsToDispose)
+                target.DisposeGraphicsResources();
+            _targetsToDispose.Clear();
+        }
+
+        private static void CompleteRemovals()
+        {
+            if (_renderablesToRemove.Count == 0)
+                return;
+
+            _renderables.RemoveAll(_renderablesToRemove.Contains);
             _renderablesToRemove.Clear();
-            _renderableInfosToClear.Clear();
+        }
+
+        private static bool CanRender(ISkiaRenderable renderable) =>
+            renderable.ShouldRender && renderable.TargetWidth > 0 && renderable.TargetHeight > 0;
+
+        private static SkiaBackend EnsureInitialized() => _backend
+            ?? throw new InvalidOperationException("SkiaRenderer.Initialize must be called before using the renderer.");
+
+        private static void ClearCollections()
+        {
+            _renderables.Clear();
+            _renderablesToRemove.Clear();
+            _targets.Clear();
+            _targetsToDispose.Clear();
+        }
+
+        private static SurfaceFormat SkColorFormatToMgColorFormat(SKColorType color)
+        {
+            return color switch
+            {
+                SKColorType.Rgba1010102 => SurfaceFormat.Rgba1010102,
+                SKColorType.Rgba16161616 => SurfaceFormat.Rgba64,
+                SKColorType.Alpha8 => SurfaceFormat.Alpha8,
+#if !FNA
+                SKColorType.Bgra8888 => SurfaceFormat.Bgra32,
+#endif
+                SKColorType.Rg1616 => SurfaceFormat.Rg32,
+                _ => SurfaceFormat.Color,
+            };
         }
     }
 }

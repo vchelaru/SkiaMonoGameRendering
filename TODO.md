@@ -13,7 +13,7 @@ This document tracks which framework/platform/backend combinations have been pro
 | KNI             | —       | DesktopGL | Desktop  | —                           | Not started | |
 | KNI             | —       | DirectX   | Desktop  | —                           | Not started | |
 | KNI             | —       | —         | Android  | —                           | Not started | |
-| KNI             | —       | WebGL     | Web      | —                           | Blocked     | SkiaSharp WASM has no GPU backend. CPU fallback possible but defeats purpose. See README. |
+| KNI             | 4.2.9001 fork | WebGL2 | Web | Sample.Kni.WebGL/ | Production candidate | Option D implemented; Chrome/Edge/Firefox hardware acceptance measurements remain release gates. |
 
 ## Architecture
 
@@ -41,6 +41,6 @@ Because MonoGame.Framework.DesktopGL and MonoGame.Framework.WindowsDX are separa
 
 ## Next Steps
 
-1. Address known issues above (ANGLE DLLs, SetData workaround)
-2. Work through remaining platform matrix rows
-3. Update Test/ project to match new conventions (or remove if redundant with samples)
+1. Run and archive the hardware benchmark matrix in `Benchmarks.WebGL/`.
+2. Upstream `eng/patches/kni-webgl-canvas-upload.patch` to KNI.
+3. Address the desktop ANGLE DLL and lazy-allocation issues above.

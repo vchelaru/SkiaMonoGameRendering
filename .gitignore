@@ -1,6 +1,10 @@
 *.user
 *.aeproperties
 .vs/
+.artifacts/
+node_modules/
+playwright-report/
+test-results/
 *.tmp
 *.cachefile
 *.csvSettings
