@@ -42,5 +42,6 @@ Because MonoGame.Framework.DesktopGL and MonoGame.Framework.WindowsDX are separa
 ## Next Steps
 
 1. Run and archive the hardware benchmark matrix in `Benchmarks.WebGL/`.
-2. Upstream `eng/patches/kni-webgl-canvas-upload.patch` to KNI.
-3. Address the desktop ANGLE DLL and lazy-allocation issues above.
+2. Address the desktop ANGLE DLL and lazy-allocation issues above.
+
+See [issue #2](https://github.com/vchelaru/SkiaMonoGameRendering/issues/2) for the pending KNI upstream dependency (`eng/patches/kni-webgl-canvas-upload.patch` shrink, once kniEngine/kni#2669 lands).
