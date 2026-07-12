@@ -280,7 +280,7 @@ Maintainers usually have stronger opinions about *API shape* than about *whether
 
 ## 10. Where to pick up
 
-1. **Finish v0** — Reopen `spikes/webgl-blit-v0/index.html` in Firefox, cycle through the upload-path dropdown, record numbers for each at 1080p / 1440p / 4K. Particularly want path 3's result (`OffscreenCanvas + transferToImageBitmap`). Outcomes:
+1. **Firefox upload path** — the v0 spike (now removed; see §7 above for its findings) never finished measuring Firefox on the four alternative upload paths at 1080p / 1440p / 4K. Particularly want path 3's result (`OffscreenCanvas + transferToImageBitmap`). This question is now tracked as part of the hardware-acceptance benchmark issue rather than a standalone spike. Outcomes:
    - If path 3 lands in 0.5–2 ms on Firefox: Option D works everywhere by routing Skia through an `OffscreenCanvas` source.
    - If every path is multi-ms in Firefox: Option D is Chromium-only; Firefox either falls back to Option B or is unsupported.
 2. **v1** (after v0 conclusive) — rerun upload measurement with the destination being a real KNI MG canvas. Requires:
@@ -305,4 +305,3 @@ Maintainers usually have stronger opinions about *API shape* than about *whether
 ## 12. Related documents
 
 - `SkiaMonoGame-Rendering-Notes.md` — broader context on SkiaMonoGameRendering's architecture, desktop OpenGL implementation, WindowsDX/ANGLE port, and future D3D12 / Vulkan plans.
-- `spikes/webgl-blit-v0/` — the v0 standalone spike (HTML + README).
