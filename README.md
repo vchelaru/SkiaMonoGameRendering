@@ -28,55 +28,49 @@ Reference the appropriate library project for your platform:
 - **DesktopGL**: Reference `src/SkiaMonoGameRendering/SkiaMonoGameRendering.csproj`
 - **WindowsDX**: Reference `src/SkiaMonoGameRendering.WindowsDX/SkiaMonoGameRendering.WindowsDX.csproj`
 
-In your `Initialize()` method:
-```cs
-SkiaRenderer.Initialize(GraphicsDevice);
-```
-
-The correct backend (GL or ANGLE) is auto-detected at runtime. You can also specify one explicitly:
+No explicit setup call is required for the common case — constructing a `SkiaRenderTarget2D`
+auto-detects and initializes the right backend for the `GraphicsDevice` you pass it the first time
+it's needed. To force a specific backend instead of auto-detection (e.g. in tests), call this once
+before constructing any `SkiaRenderTarget2D`:
 ```cs
 SkiaRenderer.Initialize(new SkiaGlBackend(), GraphicsDevice);     // DesktopGL
 SkiaRenderer.Initialize(new SkiaAngleBackend(), GraphicsDevice);  // WindowsDX
 ```
 
-In your `Draw()` method, before drawing sprites:
+## SkiaRenderTarget2D
+
+`SkiaRenderTarget2D` is a fixed-size GPU texture that SkiaSharp renders directly into — construct it
+once, `Begin()`/draw/`End()` per frame (mirroring `SpriteBatch`'s own shape), then hand `.Texture` to
+`SpriteBatch` like any other texture:
+
 ```cs
-SkiaRenderer.Draw();
+var canvas = new SkiaRenderTarget2D(GraphicsDevice, 200, 200);
+
+// per frame:
+canvas.Begin();
+canvas.Canvas.DrawCircle(100, 100, 100, paint);
+canvas.End();
+
+spriteBatch.Draw(canvas.Texture, position, Color.White);   // works directly
+spriteBatch.Draw(canvas, position, Color.White);           // or via the SpriteBatch extension methods
 ```
-
-## Implement ISkiaRenderable
-
-Create a class that implements `ISkiaRenderable`:
 
 | Member | Description |
 |--------|-------------|
-| `TargetWidth` | Width of the output texture |
-| `TargetHeight` | Height of the output texture |
-| `TargetColorFormat` | SkiaSharp color format for the texture |
-| `ShouldRender` | Set to `false` when the texture doesn't need updating |
-| `ClearCanvasOnRender` | Whether to clear the canvas before drawing |
-| `DrawToSurface(SKSurface)` | Your SkiaSharp drawing code goes here |
-| `NotifyDrawnTexture(Texture2D)` | Receives the resulting MonoGame texture |
+| `Texture` | The `Texture2D` to draw with `SpriteBatch` |
+| `Canvas` | The `SKCanvas` to draw on — only valid between `Begin()` and `End()`; throws otherwise |
+| `Begin(bool clear = true)` | Starts a render pass; throws if called again before `End()` |
+| `End()` | Ends the render pass; throws if `Begin()` wasn't called first |
+| `Dispose()` | Releases the underlying GPU resources; throws if called between `Begin()` and `End()` |
 
-Register your renderable:
-```cs
-SkiaRenderer.AddRenderable(myRenderable);
-```
+Size is fixed for the object's lifetime, like `RenderTarget2D` — construct a new
+`SkiaRenderTarget2D` (and `Dispose()` the old one) if you need a different size.
 
-Unregister it when you're done (this defers disposal until the next `Draw()` so
-in-flight GPU resources are released safely):
-```cs
-SkiaRenderer.RemoveRenderable(myRenderable);
-```
-
-Tear the renderer down (releases all textures and the backend, e.g. on exit or before switching backends):
+Tear the shared backend down (e.g. on exit, or before switching backends) with:
 ```cs
 SkiaRenderer.Dispose();
 ```
-
-Other members: `IsManaging(renderable)` checks whether a renderable is currently
-registered; `TextureCount`, `RenderableCount`, and `IsInitialized` expose renderer
-state for diagnostics.
+Dispose your own `SkiaRenderTarget2D` instances first — this doesn't track or dispose them for you.
 
 ## Sample Projects
 
@@ -114,10 +108,13 @@ The sample proves SpriteBatch interleaving, render-target consumption, shader sa
 
 ## Using SkiaSharp
 
-The `DrawToSurface` callback gives you a full SkiaSharp `SKSurface` with GPU-accelerated canvas. For example, drawing an anti-aliased circle:
+Between `Begin()` and `End()`, `SkiaRenderTarget2D.Canvas` gives you a full GPU-accelerated
+`SKCanvas`. For example, drawing an anti-aliased circle:
 
 ```cs
-surface.Canvas.DrawCircle(Radius, Radius, Radius, _paint);
+canvas.Begin();
+canvas.Canvas.DrawCircle(Radius, Radius, Radius, _paint);
+canvas.End();
 ```
 
 For more on SkiaSharp drawing, see the [SkiaSharp documentation](https://learn.microsoft.com/en-us/previous-versions/xamarin/xamarin-forms/user-interface/graphics/skiasharp/basics/).

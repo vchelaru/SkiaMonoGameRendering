@@ -11,12 +11,14 @@ using Topten.RichTextKit;
 
 namespace Sample.Kni.WebGL.Gum;
 
-internal sealed class SkiaGumRenderable : ISkiaRenderable, IDisposable
+internal sealed class SkiaGumRenderable : IDisposable
 {
+    private readonly GraphicsDevice _graphicsDevice;
     private readonly int _width;
     private readonly int _height;
     private readonly Stopwatch _clock = Stopwatch.StartNew();
     private readonly SKPaint _accentPaint = new() { Color = new SKColor(238, 84, 74), IsAntialias = true };
+    private SkiaRenderTarget2D? _canvas;
     private ContainerRuntime? _root;
     private RectangleRuntime? _button;
     private TextRuntime? _buttonText;
@@ -30,27 +32,47 @@ internal sealed class SkiaGumRenderable : ISkiaRenderable, IDisposable
     private FontMapper? _previousFontMapper;
     private EmbeddedFontMapper? _fontMapper;
 
-    public SkiaGumRenderable(int width, int height)
+    public SkiaGumRenderable(GraphicsDevice graphicsDevice, int width, int height)
     {
+        _graphicsDevice = graphicsDevice;
         _width = width;
         _height = height;
     }
 
-    public Texture2D? Texture { get; private set; }
+    public Texture2D? Texture => _canvas?.Texture;
     public float Dpi { get; set; } = 1;
-    public int TargetWidth => Math.Max(1, (int)MathF.Round(_width * Dpi));
-    public int TargetHeight => Math.Max(1, (int)MathF.Round(_height * Dpi));
-    public SKColorType TargetColorFormat => SKColorType.Rgba8888;
-    public bool ShouldRender => true;
-    public bool ClearCanvasOnRender => true;
+    private int TargetWidth => Math.Max(1, (int)MathF.Round(_width * Dpi));
+    private int TargetHeight => Math.Max(1, (int)MathF.Round(_height * Dpi));
 
-    public void DrawToSurface(SKSurface surface)
+    public void Draw()
+    {
+        RecreateCanvasIfNeeded();
+
+        _canvas!.Begin();
+        DrawToSurface(_canvas.Canvas);
+        _canvas.End();
+    }
+
+    // SkiaRenderTarget2D is fixed-size for its lifetime - a DPI change means a new render target,
+    // not a resize. Explicit here since the library won't do it silently anymore.
+    private void RecreateCanvasIfNeeded()
+    {
+        var width = TargetWidth;
+        var height = TargetHeight;
+        if (_canvas != null && _canvas.Texture.Width == width && _canvas.Texture.Height == height)
+            return;
+
+        _canvas?.Dispose();
+        _canvas = new SkiaRenderTarget2D(_graphicsDevice, width, height);
+    }
+
+    private void DrawToSurface(SKCanvas canvas)
     {
         if (_root == null)
         {
             try
             {
-                InitializeGum(surface.Canvas);
+                InitializeGum(canvas);
             }
             catch (Exception exception)
             {
@@ -58,8 +80,8 @@ internal sealed class SkiaGumRenderable : ISkiaRenderable, IDisposable
             }
         }
 
-        surface.Canvas.Scale(Dpi);
-        SystemManagers.Default.Canvas = surface.Canvas;
+        canvas.Scale(Dpi);
+        SystemManagers.Default.Canvas = canvas;
         _button!.FillColor = _pressed
             ? new SKColor(185, 55, 49)
             : _hovered ? new SKColor(74, 141, 192) : new SKColor(54, 122, 178);
@@ -75,7 +97,7 @@ internal sealed class SkiaGumRenderable : ISkiaRenderable, IDisposable
         }
 
         var x = 420 + MathF.Sin((float)_clock.Elapsed.TotalSeconds * 2) * 22;
-        surface.Canvas.DrawCircle(x, 42, 12, _accentPaint);
+        canvas.DrawCircle(x, 42, 12, _accentPaint);
     }
 
     private void InitializeGum(SKCanvas canvas)
@@ -201,8 +223,6 @@ internal sealed class SkiaGumRenderable : ISkiaRenderable, IDisposable
         _root.UpdateLayout();
     }
 
-    public void NotifyDrawnTexture(Texture2D texture) => Texture = texture;
-
     public void SetPresentationTransform(Matrix screenToPresentation)
     {
         Matrix.Invert(ref screenToPresentation, out _screenToUi);
@@ -251,12 +271,16 @@ internal sealed class SkiaGumRenderable : ISkiaRenderable, IDisposable
         return requested;
     }
 
-    public void ResetTexture() => Texture = null;
+    public void ResetTexture()
+    {
+        _canvas?.Dispose();
+        _canvas = null;
+    }
 
     public void Dispose()
     {
-        if (SkiaRenderer.IsManaging(this))
-            SkiaRenderer.RemoveRenderable(this);
+        _canvas?.Dispose();
+        _canvas = null;
         if (ReferenceEquals(FontMapper.Default, _fontMapper) && _previousFontMapper != null)
             FontMapper.Default = _previousFontMapper;
         _fontMapper?.Dispose();

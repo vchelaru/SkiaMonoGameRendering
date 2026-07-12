@@ -18,7 +18,7 @@ Use `BlendState.AlphaBlend` for the premultiplied Skia texture. `BlendState.NonP
 
 ## Context lost
 
-The host releases Skia GPU wrappers on `webglcontextlost` and recreates them on restore. Pause calls to `SkiaRenderer.Draw()` while `host.IsContextLost` is true. KNI recreates its own destination resources through its graphics lifecycle.
+The host releases Skia GPU wrappers on `webglcontextlost` and recreates them on restore. Pause calls to your `SkiaRenderTarget2D`'s `Begin()`/`End()` while `host.IsContextLost` is true. KNI recreates its own destination resources through its graphics lifecycle.
 
 ## Trimming or AOT failure
 

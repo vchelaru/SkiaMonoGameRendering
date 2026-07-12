@@ -1,60 +1,44 @@
-﻿using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Graphics;
 using SkiaMonoGameRendering;
 using SkiaSharp;
 
 namespace Sample
 {
-    internal class SkiaEntity : ISkiaRenderable
+    internal class SkiaEntity
     {
-        public Texture2D Texture { get; private set; }
-        public int TargetWidth { get => (int)Radius * 2; }
-        public int TargetHeight { get => (int)Radius * 2; }
-        public SKColorType TargetColorFormat { get => SKColorType.Rgba8888; }
-        public bool ShouldRender { get => true; }
-        public bool ClearCanvasOnRender { get => true; }
-        public float Radius { get; set; } = 100;
+        private readonly SkiaRenderTarget2D _canvas;
+        private readonly SKPaint _paint;
+        private bool _paintNeedsUpdate;
+        private SKColor _color = SKColors.Red;
 
-        bool _paintNeedsUpdate;
-        SKColor _color = SKColors.Red;
-        public SKColor Color { get { return _color; } set { _color = value; _paintNeedsUpdate = true; } }
-
-        SKPaint _paint;
-
-        public void Initialize()
+        public float Radius { get; }
+        public Texture2D Texture => _canvas.Texture;
+        public SKColor Color
         {
-            SkiaRenderer.AddRenderable(this);
+            get => _color;
+            set { _color = value; _paintNeedsUpdate = true; }
         }
 
-        public void Destroy()
+        public SkiaEntity(GraphicsDevice graphicsDevice, float radius = 100)
         {
-            SkiaRenderer.RemoveRenderable(this);
+            Radius = radius;
+            _canvas = new SkiaRenderTarget2D(graphicsDevice, (int)radius * 2, (int)radius * 2);
+            _paint = new SKPaint { Color = _color, Style = SKPaintStyle.Fill, IsAntialias = true };
         }
 
-        public void DrawToSurface(SKSurface surface)
+        public void Draw()
         {
-            // Avoid instancing classes every frame to avoid GC collections
-            if (_paint == null)
-            {
-                _paint = new SKPaint
-                {
-                    Color = Color,
-                    Style = SKPaintStyle.Fill,
-                    IsAntialias = true
-                };
-            }
-
             if (_paintNeedsUpdate)
             {
                 _paint.Color = Color;
                 _paintNeedsUpdate = false;
             }
 
-            surface.Canvas.DrawCircle(Radius, Radius, Radius, _paint);
+            _canvas.Begin();
+            _canvas.Canvas.DrawCircle(Radius, Radius, Radius, _paint);
+            _canvas.End();
         }
 
-        public void NotifyDrawnTexture(Texture2D texture)
-        {
-            Texture = texture;
-        }
+        public void Dispose() => _canvas.Dispose();
     }
 }

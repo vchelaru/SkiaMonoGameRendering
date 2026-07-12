@@ -27,10 +27,7 @@ namespace Sample
 
         protected override void Initialize()
         {
-            SkiaRenderer.Initialize(GraphicsDevice);
-
-            _entity = new SkiaEntity();
-            _entity.Initialize();
+            _entity = new SkiaEntity(GraphicsDevice);
 
             base.Initialize();
         }
@@ -50,11 +47,10 @@ namespace Sample
 
         protected override void Draw(GameTime gameTime)
         {
-            SkiaRenderer.Draw();
-
             GraphicsDevice.SetRenderTarget(null);
             GraphicsDevice.Clear(Color.Black);
 
+            _entity.Draw();
             DrawSkiaEntity();
 
             base.Draw(gameTime);
@@ -62,8 +58,6 @@ namespace Sample
 
         void DrawSkiaEntity()
         {
-            if (_entity.Texture == null) return;
-
             var destinationRectangle = new Rectangle(0, 0, _entity.Texture.Width, _entity.Texture.Height);
 
             _spriteBatch.Begin(SpriteSortMode.Deferred);

@@ -2,7 +2,9 @@
 
 ## Definition
 
-`SkiaWebGlBackend` is the browser-specific `SkiaBackend` that renders an `ISkiaRenderable` synchronously into the hidden GPU canvas owned by `SkiaMonoGameWebGlHost`, flushes Skia, and uploads that canvas into an allocated KNI `Texture2D`.
+`SkiaWebGlBackend` is the browser-specific `SkiaBackend` that drives a `SkiaRenderTarget2D`'s
+render pass into the hidden GPU canvas owned by `SkiaMonoGameWebGlHost`, flushes Skia, and uploads
+that canvas into the target's KNI `Texture2D`.
 
 Namespace: `SkiaMonoGameRendering.Kni.WebGL`
 
@@ -26,7 +28,7 @@ public sealed class SkiaWebGlBackend : SkiaBackend
 | `Diagnostics` | Read-only counters and latest CPU timing for rendering, upload, resize, dropped frames, and context loss. |
 | `GRContext` | The Skia GPU context owned by the host. It is available after the host has created its first surface. |
 | `Initialize(GraphicsDevice)` | Attaches the backend to the KNI graphics device. `host.Ready` must already have completed. |
-| `Dispose()` | Unsubscribes context events. Targets and their KNI textures are disposed by `SkiaRenderer.Dispose()`. |
+| `Dispose()` | Unsubscribes context events. Dispose your own `SkiaRenderTarget2D` instances first — this doesn't track or dispose them for you. |
 
 ## Options
 
@@ -39,8 +41,9 @@ public sealed class SkiaWebGlBackend : SkiaBackend
 
 @code {
     private SkiaMonoGameWebGlHost? host;
+    private SkiaRenderTarget2D? canvas;
 
-    private async Task StartAsync(GraphicsDevice graphicsDevice, ISkiaRenderable ui)
+    private async Task StartAsync(GraphicsDevice graphicsDevice)
     {
         await host!.Ready;
 
@@ -53,19 +56,28 @@ public sealed class SkiaWebGlBackend : SkiaBackend
         });
 
         SkiaRenderer.Initialize(backend, graphicsDevice);
-        SkiaRenderer.AddRenderable(ui);
+        canvas = new SkiaRenderTarget2D(graphicsDevice, 480, 300);
+    }
+
+    private void DrawUi()
+    {
+        canvas!.Begin();
+        canvas.Canvas.DrawCircle(240, 150, 100, paint);
+        canvas.End();
     }
 }
 ```
 
-Call `SkiaRenderer.Draw()` only after ending any lower `SpriteBatch`. The notified texture is current when `Draw()` returns and can immediately be sampled by another `SpriteBatch`, a `RenderTarget2D` pass, or a KNI effect.
+Call `canvas.Begin()`/`End()` only after ending any lower `SpriteBatch`. `canvas.Texture` is
+current as soon as `End()` returns and can immediately be sampled by another `SpriteBatch`, a
+`RenderTarget2D` pass, or a KNI effect.
 
 ## Remarks
 
 - Rendering and upload are synchronous and must remain on the browser graphics thread.
 - Only `SurfaceFormat.Color` / RGBA8 targets are supported.
 - The normal upload path has no `readPixels`, managed pixel buffer, or per-frame `Texture2D` allocation.
-- During `webglcontextlost`, pause `SkiaRenderer.Draw()` until the host reports restoration.
-- Dispose `SkiaRenderer` before disposing the host or replacing the backend/graphics device.
+- During `webglcontextlost`, pause calls to `canvas.Begin()`/`End()` until the host reports restoration.
+- Dispose your `SkiaRenderTarget2D` instances, then `SkiaRenderer`, before disposing the host or replacing the backend/graphics device.
 
 See also [WebGL quick start](../webgl/quickstart.md) and [troubleshooting](../webgl/troubleshooting.md).
