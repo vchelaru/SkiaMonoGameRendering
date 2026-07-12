@@ -79,7 +79,7 @@ Dispose your own `SkiaRenderTarget2D` instances first — this doesn't track or 
 - `samples/Sample.Kni.WebGL/` — KNI Blazor WebAssembly sample using the patched canvas-upload API
 - `samples/Test/` — More comprehensive test with dynamic add/remove, FPS counter, input handling
 
-Game logic is shared between samples — see `Game1.cs` and `SkiaEntity.cs`.
+DesktopGL and WindowsDX share the same `Game1.cs` via a linked file include.
 
 ## Architecture
 
