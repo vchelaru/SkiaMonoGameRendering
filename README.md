@@ -63,6 +63,21 @@ Register your renderable:
 SkiaRenderer.AddRenderable(myRenderable);
 ```
 
+Unregister it when you're done (this defers disposal until the next `Draw()` so
+in-flight GPU resources are released safely):
+```cs
+SkiaRenderer.RemoveRenderable(myRenderable);
+```
+
+Tear the renderer down (releases all textures and the backend, e.g. on exit or before switching backends):
+```cs
+SkiaRenderer.Dispose();
+```
+
+Other members: `IsManaging(renderable)` checks whether a renderable is currently
+registered; `TextureCount`, `RenderableCount`, and `IsInitialized` expose renderer
+state for diagnostics.
+
 ## Sample Projects
 
 - `Sample.MonoGame.DesktopGL/` — DesktopGL sample (cross-platform: Windows, Linux, macOS)
@@ -78,6 +93,7 @@ The library uses a backend abstraction (`SkiaBackend` base class) so each graphi
 
 - `SkiaMonoGameRendering/` — DesktopGL library (core + `SkiaGlBackend`)
 - `SkiaMonoGameRendering.WindowsDX/` — WindowsDX library (shared core + `SkiaAngleBackend`)
+- `SkiaMonoGameRendering.Kni.WebGL/` — KNI/Blazor library (shared core + `SkiaWebGlBackend`)
 
 See `SkiaMonoGame-Rendering-Notes.md` for detailed technical documentation on how each backend works, including the ANGLE integration and D3D11 state management.
 
