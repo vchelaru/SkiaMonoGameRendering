@@ -31,7 +31,7 @@ foreach ($project in $projects) {
     if ($LASTEXITCODE -ne 0) { throw "Failed to pack KNI project '$project'." }
 }
 
-dotnet pack (Join-Path $PSScriptRoot "..\SkiaMonoGameRendering.Kni.WebGL\SkiaMonoGameRendering.Kni.WebGL.csproj") `
+dotnet pack (Join-Path $PSScriptRoot "..\src\SkiaMonoGameRendering.Kni.WebGL\SkiaMonoGameRendering.Kni.WebGL.csproj") `
     -c Release -o $outputPath -p:UseKniPackages=true -p:RestoreSources="$outputPath;https://api.nuget.org/v3/index.json"
 if ($LASTEXITCODE -ne 0) { throw "Failed to pack SkiaMonoGameRendering.Kni.WebGL." }
 

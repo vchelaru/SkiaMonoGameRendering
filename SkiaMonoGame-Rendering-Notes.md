@@ -213,7 +213,7 @@ Full discussion is in a dedicated document: **`WebGL-KNI-Integration.md`** at th
 - The four options (A: shared WebGL context; B: CPU readback; C: two-canvas overlay; D: cross-context GPU blit via `texImage2D(canvas)`) with comparison table.
 - Why Option D is the recommended path, plus the `OffscreenCanvas + transferToImageBitmap` fast-path variant.
 - Option A reconsidered with a KNI-side `InvalidateStateCache()` patch reducing its implementation cost significantly.
-- Spike v0 status: standalone HTML in `Spikes/webgl-blit-v0/`, initial results (Chrome/Edge ~0.25 ms, Firefox ~25 ms), four alternative upload paths added to test whether any rescue Firefox.
+- Spike v0 status: standalone HTML in `spikes/webgl-blit-v0/`, initial results (Chrome/Edge ~0.25 ms, Firefox ~25 ms), four alternative upload paths added to test whether any rescue Firefox.
 - KNI-side changes worth making if forking KNI, and which of them are upstreamable to KNI vs better kept downstream.
 - Where to pick up: finish v0 Firefox measurements, then v1 (real KNI canvas), then v2 (full interleaving demo).
 

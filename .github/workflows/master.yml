@@ -17,10 +17,10 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
-      - run: dotnet test Tests.Core/Tests.Core.csproj -c ${{ matrix.configuration }}
-      - run: dotnet build SkiaMonoGameRendering/SkiaMonoGameRendering.csproj -c ${{ matrix.configuration }}
-      - run: dotnet build SkiaMonoGameRendering.WindowsDX/SkiaMonoGameRendering.WindowsDX.csproj -c ${{ matrix.configuration }}
-      - run: dotnet pack SkiaMonoGameRendering/SkiaMonoGameRendering.csproj -c ${{ matrix.configuration }}
+      - run: dotnet test tests/Tests.Core/Tests.Core.csproj -c ${{ matrix.configuration }}
+      - run: dotnet build src/SkiaMonoGameRendering/SkiaMonoGameRendering.csproj -c ${{ matrix.configuration }}
+      - run: dotnet build src/SkiaMonoGameRendering.WindowsDX/SkiaMonoGameRendering.WindowsDX.csproj -c ${{ matrix.configuration }}
+      - run: dotnet pack src/SkiaMonoGameRendering/SkiaMonoGameRendering.csproj -c ${{ matrix.configuration }}
 
   webgl-functional:
     runs-on: ubuntu-latest
@@ -33,24 +33,24 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: Tests.Kni.WebGL/package-lock.json
+          cache-dependency-path: tests/Tests.Kni.WebGL/package-lock.json
       - name: Bootstrap patched KNI
         shell: pwsh
         run: ./eng/bootstrap-kni-webgl.ps1
       - name: Install WASM toolchain
         run: dotnet workload install wasm-tools-net8
       - name: Build native WASM Release
-        run: dotnet build Sample.Kni.WebGL/Sample.Kni.WebGL.csproj -c Release
+        run: dotnet build samples/Sample.Kni.WebGL/Sample.Kni.WebGL.csproj -c Release
       - name: Install browser tests
-        working-directory: Tests.Kni.WebGL
+        working-directory: tests/Tests.Kni.WebGL
         run: |
           npm ci
           npx playwright install --with-deps chromium firefox webkit
       - name: Functional browser tests
-        working-directory: Tests.Kni.WebGL
+        working-directory: tests/Tests.Kni.WebGL
         run: npm test
       - name: Publish trimmed WASM AOT
-        run: dotnet publish Sample.Kni.WebGL/Sample.Kni.WebGL.csproj -c Release --no-restore -p:RunAOTCompilation=true -p:PublishTrimmed=true
+        run: dotnet publish samples/Sample.Kni.WebGL/Sample.Kni.WebGL.csproj -c Release --no-restore -p:RunAOTCompilation=true -p:PublishTrimmed=true
       - name: Pack patched KNI and WebGL library
         shell: pwsh
         run: ./eng/pack-kni-webgl.ps1
@@ -59,6 +59,6 @@ jobs:
         with:
           name: webgl-browser-artifacts
           path: |
-            Tests.Kni.WebGL/playwright-report
-            Tests.Kni.WebGL/test-results
+            tests/Tests.Kni.WebGL/playwright-report
+            tests/Tests.Kni.WebGL/test-results
             .artifacts/packages

@@ -19,7 +19,7 @@ module.exports = defineConfig({
     { name: "webkit", use: { ...devices["Desktop Safari"] } },
   ],
   webServer: {
-    command: "dotnet run --project ../Sample.Kni.WebGL/Sample.Kni.WebGL.csproj -c Release --no-build --urls http://127.0.0.1:5099",
+    command: "dotnet run --project ../../samples/Sample.Kni.WebGL/Sample.Kni.WebGL.csproj -c Release --no-build --urls http://127.0.0.1:5099",
     url: "http://127.0.0.1:5099",
     reuseExistingServer: !process.env.CI,
     timeout: 120000,

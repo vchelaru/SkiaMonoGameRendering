@@ -25,8 +25,8 @@ A library that lets MonoGame and KNI applications use SkiaSharp's GPU rendering 
 ## Quick Start
 
 Reference the appropriate library project for your platform:
-- **DesktopGL**: Reference `SkiaMonoGameRendering/SkiaMonoGameRendering.csproj`
-- **WindowsDX**: Reference `SkiaMonoGameRendering.WindowsDX/SkiaMonoGameRendering.WindowsDX.csproj`
+- **DesktopGL**: Reference `src/SkiaMonoGameRendering/SkiaMonoGameRendering.csproj`
+- **WindowsDX**: Reference `src/SkiaMonoGameRendering.WindowsDX/SkiaMonoGameRendering.WindowsDX.csproj`
 
 In your `Initialize()` method:
 ```cs
@@ -80,10 +80,10 @@ state for diagnostics.
 
 ## Sample Projects
 
-- `Sample.MonoGame.DesktopGL/` — DesktopGL sample (cross-platform: Windows, Linux, macOS)
-- `Sample.MonoGame.WindowsDX/` — WindowsDX sample (Windows only)
-- `Sample.Kni.WebGL/` — KNI Blazor WebAssembly sample using the patched canvas-upload API
-- `Test/` — More comprehensive test with dynamic add/remove, FPS counter, input handling
+- `samples/Sample.MonoGame.DesktopGL/` — DesktopGL sample (cross-platform: Windows, Linux, macOS)
+- `samples/Sample.MonoGame.WindowsDX/` — WindowsDX sample (Windows only)
+- `samples/Sample.Kni.WebGL/` — KNI Blazor WebAssembly sample using the patched canvas-upload API
+- `samples/Test/` — More comprehensive test with dynamic add/remove, FPS counter, input handling
 
 Game logic is shared between samples — see `Game1.cs` and `SkiaEntity.cs`.
 
@@ -91,9 +91,10 @@ Game logic is shared between samples — see `Game1.cs` and `SkiaEntity.cs`.
 
 The library uses a backend abstraction (`SkiaBackend` base class) so each graphics API gets its own implementation. Core source files are shared across platform-specific library projects via linked includes:
 
-- `SkiaMonoGameRendering/` — DesktopGL library (core + `SkiaGlBackend`)
-- `SkiaMonoGameRendering.WindowsDX/` — WindowsDX library (shared core + `SkiaAngleBackend`)
-- `SkiaMonoGameRendering.Kni.WebGL/` — KNI/Blazor library (shared core + `SkiaWebGlBackend`)
+- `src/SkiaMonoGameRendering/` — DesktopGL library (core + `SkiaGlBackend`)
+- `src/SkiaMonoGameRendering.Core.OGL/` — engine-agnostic raw-GL/Skia FBO interop shared by GL-based backends
+- `src/SkiaMonoGameRendering.WindowsDX/` — WindowsDX library (shared core + `SkiaAngleBackend`)
+- `src/SkiaMonoGameRendering.Kni.WebGL/` — KNI/Blazor library (shared core + `SkiaWebGlBackend`)
 
 See `SkiaMonoGame-Rendering-Notes.md` for detailed technical documentation on how each backend works, including the ANGLE integration and D3D11 state management.
 
@@ -105,8 +106,8 @@ KNI does not yet expose canvas upload upstream, so the repository pins a KNI com
 
 ```powershell
 .\eng\bootstrap-kni-webgl.ps1
-dotnet build Sample.Kni.WebGL\Sample.Kni.WebGL.csproj -c Release
-dotnet run --project Sample.Kni.WebGL\Sample.Kni.WebGL.csproj -c Release --no-build
+dotnet build samples\Sample.Kni.WebGL\Sample.Kni.WebGL.csproj -c Release
+dotnet run --project samples\Sample.Kni.WebGL\Sample.Kni.WebGL.csproj -c Release --no-build
 ```
 
 The sample proves SpriteBatch interleaving, render-target consumption, shader sampling, animated Gum/Skia content, pointer/touch/wheel/text input, fractional DPR handling, and backend recreation. See `docs/webgl/quickstart.md`, `docs/webgl/validated-baseline.md`, and `docs/documentation/SkiaWebGlBackend.md` for the exact contract and support status.

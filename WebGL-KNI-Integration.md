@@ -160,7 +160,7 @@ This **does not solve the other hard part of Option A** — making Skia's Emscri
 
 ## 7. Spike v0 — status and findings
 
-Built `Spikes/webgl-blit-v0/` — a standalone static HTML page with two WebGL2 canvases on separate contexts, a per-frame `texImage2D(canvas)` upload, and a HUD reporting CPU/GPU cost. No KNI, no Blazor, no MonoGame — just the load-bearing cross-context upload question in isolation.
+Built `spikes/webgl-blit-v0/` — a standalone static HTML page with two WebGL2 canvases on separate contexts, a per-frame `texImage2D(canvas)` upload, and a HUD reporting CPU/GPU cost. No KNI, no Blazor, no MonoGame — just the load-bearing cross-context upload question in isolation.
 
 ### 7.1 Initial results (single user machine, default upload path)
 
@@ -280,7 +280,7 @@ Maintainers usually have stronger opinions about *API shape* than about *whether
 
 ## 10. Where to pick up
 
-1. **Finish v0** — Reopen `Spikes/webgl-blit-v0/index.html` in Firefox, cycle through the upload-path dropdown, record numbers for each at 1080p / 1440p / 4K. Particularly want path 3's result (`OffscreenCanvas + transferToImageBitmap`). Outcomes:
+1. **Finish v0** — Reopen `spikes/webgl-blit-v0/index.html` in Firefox, cycle through the upload-path dropdown, record numbers for each at 1080p / 1440p / 4K. Particularly want path 3's result (`OffscreenCanvas + transferToImageBitmap`). Outcomes:
    - If path 3 lands in 0.5–2 ms on Firefox: Option D works everywhere by routing Skia through an `OffscreenCanvas` source.
    - If every path is multi-ms in Firefox: Option D is Chromium-only; Firefox either falls back to Option B or is unsupported.
 2. **v1** (after v0 conclusive) — rerun upload measurement with the destination being a real KNI MG canvas. Requires:
@@ -305,4 +305,4 @@ Maintainers usually have stronger opinions about *API shape* than about *whether
 ## 12. Related documents
 
 - `SkiaMonoGame-Rendering-Notes.md` — broader context on SkiaMonoGameRendering's architecture, desktop OpenGL implementation, WindowsDX/ANGLE port, and future D3D12 / Vulkan plans.
-- `Spikes/webgl-blit-v0/` — the v0 standalone spike (HTML + README).
+- `spikes/webgl-blit-v0/` — the v0 standalone spike (HTML + README).

@@ -6,14 +6,14 @@ This document tracks which framework/platform/backend combinations have been pro
 
 | Framework       | Version | Backend   | Platform | Sample Project              | Status      | Notes |
 |-----------------|---------|-----------|----------|-----------------------------|-------------|-------|
-| MonoGame        | 3.8.4   | DesktopGL | Desktop  | Sample.MonoGame.DesktopGL/  | Working     | SkiaGlBackend. Cross-platform (Windows, Linux, macOS). |
-| MonoGame        | 3.8.4   | WindowsDX | Desktop  | Sample.MonoGame.WindowsDX/  | Working     | SkiaAngleBackend. Windows only. Uses ANGLE + D3D11.1 SwapDeviceContextState. |
+| MonoGame        | 3.8.4   | DesktopGL | Desktop  | samples/Sample.MonoGame.DesktopGL/  | Working     | SkiaGlBackend. Cross-platform (Windows, Linux, macOS). |
+| MonoGame        | 3.8.4   | WindowsDX | Desktop  | samples/Sample.MonoGame.WindowsDX/  | Working     | SkiaAngleBackend. Windows only. Uses ANGLE + D3D11.1 SwapDeviceContextState. |
 | MonoGame        | 3.8.5   | DirectX   | Desktop  | —                           | Not started | |
 | MonoGame        | 3.8.5   | Vulkan    | Desktop  | —                           | Not started | |
 | KNI             | —       | DesktopGL | Desktop  | —                           | Not started | |
 | KNI             | —       | DirectX   | Desktop  | —                           | Not started | |
 | KNI             | —       | —         | Android  | —                           | Not started | |
-| KNI             | 4.2.9001 fork | WebGL2 | Web | Sample.Kni.WebGL/ | Production candidate | Option D implemented; Chrome/Edge/Firefox hardware acceptance measurements remain release gates. |
+| KNI             | 4.2.9001 fork | WebGL2 | Web | samples/Sample.Kni.WebGL/ | Production candidate | Option D implemented; Chrome/Edge/Firefox hardware acceptance measurements remain release gates. |
 
 ## Architecture
 
@@ -21,11 +21,14 @@ The library uses a backend abstraction (`SkiaBackend` base class) so each graphi
 
 - **`SkiaGlBackend`** — OpenGL via SDL context sharing (DesktopGL)
 - **`SkiaAngleBackend`** — D3D11 via ANGLE's GL ES translation (WindowsDX, Windows only)
+- **`SkiaWebGlBackend`** — separate WebGL2 canvas/context, composited via canvas-to-texture upload (KNI/Blazor)
 
 Because MonoGame.Framework.DesktopGL and MonoGame.Framework.WindowsDX are separate NuGet packages that can't coexist, each backend has its own library project. Core source files are shared via linked includes:
 
-- `SkiaMonoGameRendering/` — DesktopGL library (core + GL backend)
-- `SkiaMonoGameRendering.WindowsDX/` — WindowsDX library (shares core files + ANGLE backend)
+- `src/SkiaMonoGameRendering/` — DesktopGL library (core + GL backend)
+- `src/SkiaMonoGameRendering.Core.OGL/` — engine-agnostic raw-GL/Skia FBO interop shared by GL-based backends
+- `src/SkiaMonoGameRendering.WindowsDX/` — WindowsDX library (shares core files + ANGLE backend)
+- `src/SkiaMonoGameRendering.Kni.WebGL/` — KNI/Blazor library (shares core files + WebGL backend)
 
 ## Known Issues / Cleanup
 
@@ -41,7 +44,7 @@ Because MonoGame.Framework.DesktopGL and MonoGame.Framework.WindowsDX are separa
 
 ## Next Steps
 
-1. Run and archive the hardware benchmark matrix in `Benchmarks.WebGL/`.
+1. Run and archive the hardware benchmark matrix in `benchmarks/Benchmarks.WebGL/`.
 2. Address the desktop ANGLE DLL and lazy-allocation issues above.
 
 See [issue #2](https://github.com/vchelaru/SkiaMonoGameRendering/issues/2) for the pending KNI upstream dependency (`eng/patches/kni-webgl-canvas-upload.patch` shrink, once kniEngine/kni#2669 lands).

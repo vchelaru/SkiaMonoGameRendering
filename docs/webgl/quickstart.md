@@ -11,8 +11,8 @@
 ```powershell
 dotnet workload install wasm-tools-net8
 .\eng\bootstrap-kni-webgl.ps1
-dotnet build Sample.Kni.WebGL\Sample.Kni.WebGL.csproj -c Release
-dotnet run --project Sample.Kni.WebGL\Sample.Kni.WebGL.csproj -c Release --no-build
+dotnet build samples\Sample.Kni.WebGL\Sample.Kni.WebGL.csproj -c Release
+dotnet run --project samples\Sample.Kni.WebGL\Sample.Kni.WebGL.csproj -c Release --no-build
 ```
 
 The library is a Razor class library, so `skia-monogame-webgl.js` is delivered as a static web asset. Consumers do not copy JavaScript manually.

@@ -3,23 +3,23 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.2.32519.379
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SkiaMonoGameRendering", "SkiaMonoGameRendering\SkiaMonoGameRendering.csproj", "{64CF3802-6F5E-43EA-B320-EBB6A7D39A59}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SkiaMonoGameRendering", "src\SkiaMonoGameRendering\SkiaMonoGameRendering.csproj", "{64CF3802-6F5E-43EA-B320-EBB6A7D39A59}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Test", "Test\Test.csproj", "{30B7AFD0-C922-4213-B284-5A4E1AB2E532}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Test", "samples\Test\Test.csproj", "{30B7AFD0-C922-4213-B284-5A4E1AB2E532}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SkiaMonoGameRendering.WindowsDX", "SkiaMonoGameRendering.WindowsDX\SkiaMonoGameRendering.WindowsDX.csproj", "{6ADB14ED-C11E-433D-A825-E101A0AD4C34}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SkiaMonoGameRendering.WindowsDX", "src\SkiaMonoGameRendering.WindowsDX\SkiaMonoGameRendering.WindowsDX.csproj", "{6ADB14ED-C11E-433D-A825-E101A0AD4C34}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sample.MonoGame.DesktopGL", "Sample.MonoGame.DesktopGL\Sample.MonoGame.DesktopGL.csproj", "{974BEA10-07E8-407A-A228-6C407009CBDF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sample.MonoGame.DesktopGL", "samples\Sample.MonoGame.DesktopGL\Sample.MonoGame.DesktopGL.csproj", "{974BEA10-07E8-407A-A228-6C407009CBDF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sample.MonoGame.WindowsDX", "Sample.MonoGame.WindowsDX\Sample.MonoGame.WindowsDX.csproj", "{F418A209-7625-4B00-9EDF-0B7CB2D28BDE}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sample.MonoGame.WindowsDX", "samples\Sample.MonoGame.WindowsDX\Sample.MonoGame.WindowsDX.csproj", "{F418A209-7625-4B00-9EDF-0B7CB2D28BDE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests.Core", "Tests.Core\Tests.Core.csproj", "{0A0A8971-1352-44CF-A709-3850371C0886}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tests.Core", "tests\Tests.Core\Tests.Core.csproj", "{0A0A8971-1352-44CF-A709-3850371C0886}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SkiaMonoGameRendering.Kni.WebGL", "SkiaMonoGameRendering.Kni.WebGL\SkiaMonoGameRendering.Kni.WebGL.csproj", "{5C24C92A-716D-49D0-A186-7A3C675B6D62}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SkiaMonoGameRendering.Kni.WebGL", "src\SkiaMonoGameRendering.Kni.WebGL\SkiaMonoGameRendering.Kni.WebGL.csproj", "{5C24C92A-716D-49D0-A186-7A3C675B6D62}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sample.Kni.WebGL", "Sample.Kni.WebGL\Sample.Kni.WebGL.csproj", "{A9DC3B8E-07B2-4E33-AE46-5CAA48447A4F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sample.Kni.WebGL", "samples\Sample.Kni.WebGL\Sample.Kni.WebGL.csproj", "{A9DC3B8E-07B2-4E33-AE46-5CAA48447A4F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SkiaMonoGameRendering.Core.OGL", "SkiaMonoGameRendering.Core.OGL\SkiaMonoGameRendering.Core.OGL.csproj", "{CD623993-F43D-4A16-A10D-4F084D4E0A64}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SkiaMonoGameRendering.Core.OGL", "src\SkiaMonoGameRendering.Core.OGL\SkiaMonoGameRendering.Core.OGL.csproj", "{CD623993-F43D-4A16-A10D-4F084D4E0A64}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

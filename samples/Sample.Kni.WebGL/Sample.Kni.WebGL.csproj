@@ -1,11 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
-  <Import Project="..\eng\Versions.props" />
+  <Import Project="..\..\eng\Versions.props" />
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <KniPlatform>BlazorGL</KniPlatform>
-    <KniSourceRoot Condition="'$(KniSourceRoot)' == ''">$(MSBuildThisFileDirectory)..\.artifacts\kni</KniSourceRoot>
+    <KniSourceRoot Condition="'$(KniSourceRoot)' == ''">$(MSBuildThisFileDirectory)..\..\.artifacts\kni</KniSourceRoot>
     <UseKniPackages Condition="'$(UseKniPackages)' == ''">false</UseKniPackages>
     <BlazorEnableTimeZoneSupport>false</BlazorEnableTimeZoneSupport>
     <WasmBuildNative>true</WasmBuildNative>
@@ -13,7 +13,7 @@
 
   <ItemGroup Condition="'$(UseKniPackages)' != 'true'">
     <ProjectReference Include="$(KniSourceRoot)\Platforms\Kni.Platform.Blazor.GL.csproj" />
-    <ProjectReference Include="..\SkiaMonoGameRendering.Kni.WebGL\SkiaMonoGameRendering.Kni.WebGL.csproj" />
+    <ProjectReference Include="..\..\src\SkiaMonoGameRendering.Kni.WebGL\SkiaMonoGameRendering.Kni.WebGL.csproj" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(UseKniPackages)' == 'true'">
