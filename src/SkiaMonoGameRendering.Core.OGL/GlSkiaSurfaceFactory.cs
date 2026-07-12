@@ -8,12 +8,20 @@ namespace SkiaMonoGameRendering.Core.OGL
     /// back a Skia <see cref="SKSurface"/> that renders directly into that texture. Engine-agnostic:
     /// callers supply the raw GL texture id and loaded <see cref="GlFunctions"/>, nothing about how
     /// the texture or GL context were created.
+    /// <para>
+    /// <paramref name="origin"/> in <see cref="CreateSurface"/> controls whether the resulting
+    /// texture, when sampled with plain OpenGL texture coordinates (v=0 at the bottom), matches
+    /// what was drawn on the Skia canvas. Defaults to <see cref="GRSurfaceOrigin.TopLeft"/> to
+    /// preserve existing callers (e.g. MonoGame, which flips elsewhere); callers that sample the
+    /// texture directly with normal GL semantics (e.g. raylib) should pass
+    /// <see cref="GRSurfaceOrigin.BottomLeft"/> instead to avoid a manual per-draw flip.
+    /// </para>
     /// </summary>
     public static class GlSkiaSurfaceFactory
     {
         public static (SKSurface surface, GRBackendRenderTarget renderTarget) CreateSurface(
             GRContext grContext, GlFunctions gl, int glTextureId, int width, int height, SKColorType colorType,
-            out GlFramebufferState framebufferState)
+            out GlFramebufferState framebufferState, GRSurfaceOrigin origin = GRSurfaceOrigin.TopLeft)
         {
             gl.GetInteger(GL_SAMPLES, out var samples);
             var maxSamples = grContext.GetMaxSurfaceSampleCount(colorType);
@@ -46,7 +54,7 @@ namespace SkiaMonoGameRendering.Core.OGL
 
             var skiaFramebufferInfo = new GRGlFramebufferInfo((uint)framebufferId, colorType.ToGlSizedFormat());
             var backendRenderTarget = new GRBackendRenderTarget(width, height, samples, 8, skiaFramebufferInfo);
-            var surface = SKSurface.Create(grContext, backendRenderTarget, GRSurfaceOrigin.TopLeft, colorType);
+            var surface = SKSurface.Create(grContext, backendRenderTarget, origin, colorType);
 
             return (surface, backendRenderTarget);
         }

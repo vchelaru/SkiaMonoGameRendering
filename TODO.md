@@ -14,6 +14,7 @@ This document tracks which framework/platform/backend combinations have been pro
 | KNI             | —       | DirectX   | Desktop  | —                           | Not started | |
 | KNI             | —       | —         | Android  | —                           | Not started | |
 | KNI             | 4.2.9001 fork | WebGL2 | Web | samples/Sample.Kni.WebGL/ | Production candidate | Option D implemented; Chrome/Edge/Firefox hardware acceptance measurements remain release gates. |
+| raylib          | 8.0.0 (Raylib-cs) | rlgl (OGL) | Desktop | samples/Sample.Raylib/ | Working (Windows only) | SkiaRaylibRenderTarget2D on Core.OGL, second WGL context shares rlgl's GL namespace. Linux/macOS need GLX/EGL instead of WGL - not implemented. |
 
 ## Architecture
 
@@ -29,6 +30,19 @@ Because MonoGame.Framework.DesktopGL and MonoGame.Framework.WindowsDX are separa
 - `src/SkiaMonoGameRendering.Core.OGL/` — engine-agnostic raw-GL/Skia FBO interop shared by GL-based backends
 - `src/SkiaMonoGameRendering.WindowsDX/` — WindowsDX library (shares core files + ANGLE backend)
 - `src/SkiaMonoGameRendering.Kni.WebGL/` — KNI/Blazor library (shares core files + WebGL backend)
+
+**raylib is the first non-MonoGame engine**, and the first consumer of `Core.OGL` from outside the
+MonoGame family (tracked in [issue #3](https://github.com/vchelaru/SkiaMonoGameRendering/issues/3)).
+It does *not* derive from `SkiaBackend`/`SkiaTarget` — those are typed directly to MonoGame's
+`Texture2D`, and issue #3 explicitly rules out a MonoGame dependency for a second engine. Instead
+`src/SkiaMonoGameRendering.Raylib/` is a hand-rolled sibling typed to raylib's own `Texture2D`
+throughout, reusing `Core.OGL`'s FBO/Skia-surface interop as-is:
+
+- **`SkiaRaylibRenderTarget2D`** — public Begin/Canvas/End API mirroring `SkiaRenderTarget2D`'s shape, `.Texture` returns a raylib `Texture2D` usable directly with `Raylib.DrawTexture*`.
+- **`SkiaRaylibContext`** / **`Wgl`** — the shared-context helper the spike (see below) proved necessary: rlgl (raylib's GL layer) and Skia both issue raw GL calls, and sharing raylib's single context between them corrupts rlgl's own rendering. A second WGL context sharing raylib's GL object namespace (same trick `SkiaGlBackend` uses via SDL) fixes it. Windows-only today - raylib statically links GLFW and doesn't export context-creation entry points, so this goes through raw Win32/WGL; Linux/macOS would need the equivalent GLX/EGL calls instead, not implemented.
+- The vertical flip between Skia's top-left-origin rendering and raylib's bottom-left texture sampling is baked into the surface at creation time (`GRSurfaceOrigin.BottomLeft`, via a new optional parameter on `GlSkiaSurfaceFactory.CreateSurface` that defaults to `TopLeft` for existing MonoGame callers) rather than left to the caller to flip per-draw.
+
+This was de-risked first as a throwaway spike (`spikes/raylib-ogl-v0/`, since removed - its finding is preserved in issue #3's spike comment and carried into `Wgl.cs`'s doc comment above).
 
 ## Known Issues / Cleanup
 
@@ -46,6 +60,6 @@ Because MonoGame.Framework.DesktopGL and MonoGame.Framework.WindowsDX are separa
 
 1. Run and archive the hardware benchmark matrix in `benchmarks/Benchmarks.WebGL/` — tracked in [issue #5](https://github.com/vchelaru/SkiaMonoGameRendering/issues/5).
 2. Address the desktop ANGLE DLL and lazy-allocation issues above.
-3. Split per-graphics-API core libraries out of the per-engine adapters so a new engine (raylib) can reuse the GL/Skia interop instead of duplicating it — tracked in [issue #3](https://github.com/vchelaru/SkiaMonoGameRendering/issues/3). The OGL split (`src/SkiaMonoGameRendering.Core.OGL/`) landed via [#4](https://github.com/vchelaru/SkiaMonoGameRendering/pull/4); ANGLE and WebGL are intentionally sequenced later, once a second consumer exists to prove the interface against.
+3. Split per-graphics-API core libraries out of the per-engine adapters so a new engine (raylib) can reuse the GL/Skia interop instead of duplicating it — tracked in [issue #3](https://github.com/vchelaru/SkiaMonoGameRendering/issues/3). The OGL split (`src/SkiaMonoGameRendering.Core.OGL/`) landed via [#4](https://github.com/vchelaru/SkiaMonoGameRendering/pull/4), and `src/SkiaMonoGameRendering.Raylib/` now proves it against a real second (non-MonoGame) engine on Windows. Issue #3 is not fully closed yet: Linux/macOS raylib support needs a GLX/EGL equivalent of `Wgl.cs` (unverified, no Linux/macOS dev box exercised here), and the ANGLE/WebGL backends are still intentionally unmigrated (step 3/4 of the issue's sequencing).
 
 See [issue #2](https://github.com/vchelaru/SkiaMonoGameRendering/issues/2) for the pending KNI upstream dependency (`eng/patches/kni-webgl-canvas-upload.patch` shrink, once kniEngine/kni#2669 lands).
