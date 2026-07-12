@@ -1,15 +1,14 @@
 using Microsoft.Xna.Framework.Graphics;
+using SkiaMonoGameRendering.Core.OGL;
 using SkiaSharp;
-using static SkiaMonoGameRendering.GlConstants;
 using static SkiaMonoGameRendering.GlWrapper;
+using static SkiaMonoGameRendering.SdlGlConstants;
 
 namespace SkiaMonoGameRendering
 {
     internal class GlTextureState
     {
         internal int TextureId;
-        internal int FramebufferId;
-        internal int RenderbufferId;
     }
 
     public class SkiaGlBackend : SkiaBackend
@@ -18,6 +17,7 @@ namespace SkiaMonoGameRendering
         IntPtr _mgContextId;
         IntPtr _skContextId;
         GRContext _grContext;
+        GlFunctions _gl;
 
         public override GRContext GRContext => _grContext;
 
@@ -39,7 +39,7 @@ namespace SkiaMonoGameRendering
                 throw new Exception("SDL_GL_CreateContext failed.");
 
             MakeSkiaContextCurrent();
-            SkGlFunctions.LoadFunctions();
+            _gl = GlFunctions.Load(new MonoGameGlFunctionLoader());
             _grContext = GRContext.CreateGl();
             MakeEngineContextCurrent();
         }
@@ -80,76 +80,26 @@ namespace SkiaMonoGameRendering
         {
             var state = (GlTextureState)textureHandle;
 
-            SkGlFunctions.GetInteger(GL_SAMPLES, out var samples);
-            var maxSamples = _grContext.GetMaxSurfaceSampleCount(colorType);
-            if (samples > maxSamples)
-                samples = maxSamples;
+            var result = GlSkiaSurfaceFactory.CreateSurface(
+                _grContext, _gl, state.TextureId, width, height, colorType, out var framebufferState);
 
-            SkGlFunctions.GenRenderbuffers(1, out var renderbufferId);
-            SkGlFunctions.BindRenderbuffer(RenderbufferTarget.Renderbuffer, renderbufferId);
-            SkGlFunctions.RenderbufferStorage(RenderbufferTarget.Renderbuffer,
-                RenderbufferStorage.Depth24Stencil8, width, height);
-            SkGlFunctions.BindRenderbuffer(RenderbufferTarget.Renderbuffer, 0);
-
-            SkGlFunctions.GenFramebuffers(1, out var framebufferId);
-            SkGlFunctions.BindFramebuffer(FramebufferTarget.Framebuffer, framebufferId);
-
-            SkGlFunctions.FramebufferTexture2D(FramebufferTarget.Framebuffer,
-                FramebufferAttachment.ColorAttachment0, TextureTarget.Texture2D, state.TextureId, 0);
-            SkGlFunctions.FramebufferRenderbuffer(FramebufferTarget.Framebuffer,
-                FramebufferAttachment.DepthAttachment, RenderbufferTarget.Renderbuffer, renderbufferId);
-            SkGlFunctions.FramebufferRenderbuffer(FramebufferTarget.Framebuffer,
-                FramebufferAttachment.StencilAttachment, RenderbufferTarget.Renderbuffer, renderbufferId);
-
-            var framebufferStatus = SkGlFunctions.CheckFramebufferStatus(FramebufferTarget.Framebuffer);
-            if (framebufferStatus != FramebufferErrorCode.FramebufferComplete &&
-                framebufferStatus != FramebufferErrorCode.FramebufferCompleteExt)
-                throw new Exception("Skia framebuffer creation failed.");
-
-            SkGlFunctions.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
-
-            state.FramebufferId = framebufferId;
-            state.RenderbufferId = renderbufferId;
-
-            var skiaFramebufferInfo = new GRGlFramebufferInfo((uint)framebufferId, colorType.ToGlSizedFormat());
-            var backendRenderTarget = new GRBackendRenderTarget(width, height, samples, 8, skiaFramebufferInfo);
-            var surface = SKSurface.Create(_grContext, backendRenderTarget, GRSurfaceOrigin.TopLeft, colorType);
-
-            renderState = state;
-            return (surface, backendRenderTarget);
+            renderState = framebufferState;
+            return result;
         }
 
         internal override void BindForDrawing(object renderState)
         {
-            var state = (GlTextureState)renderState;
-            SkGlFunctions.BindFramebuffer(FramebufferTarget.Framebuffer, state.FramebufferId);
+            GlSkiaSurfaceFactory.BindForDrawing(_gl, (GlFramebufferState)renderState);
         }
 
         internal override void UnbindAfterDrawing()
         {
-            SkGlFunctions.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+            GlSkiaSurfaceFactory.UnbindAfterDrawing(_gl);
         }
 
         internal override void DisposeRenderState(object renderState)
         {
-            var state = (GlTextureState)renderState;
-
-            if (state.FramebufferId > 0)
-            {
-                SkGlFunctions.BindFramebuffer(FramebufferTarget.Framebuffer, state.FramebufferId);
-                SkGlFunctions.InvalidateFramebuffer(FramebufferTarget.Framebuffer, 3, SkGlFunctions.FramebufferAttachements);
-                SkGlFunctions.FramebufferTexture2D(FramebufferTarget.Framebuffer,
-                    FramebufferAttachment.ColorAttachment0, TextureTarget.Texture2D, 0, 0);
-                SkGlFunctions.FramebufferRenderbuffer(FramebufferTarget.Framebuffer,
-                    FramebufferAttachment.DepthAttachment, RenderbufferTarget.Renderbuffer, 0);
-                SkGlFunctions.FramebufferRenderbuffer(FramebufferTarget.Framebuffer,
-                    FramebufferAttachment.StencilAttachment, RenderbufferTarget.Renderbuffer, 0);
-                SkGlFunctions.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
-                SkGlFunctions.DeleteFramebuffers(1, ref state.FramebufferId);
-            }
-
-            if (state.RenderbufferId > 0)
-                SkGlFunctions.DeleteRenderbuffers(1, ref state.RenderbufferId);
+            GlSkiaSurfaceFactory.DisposeRenderState(_gl, (GlFramebufferState)renderState);
         }
 
         public override void Dispose()
