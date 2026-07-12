@@ -4,7 +4,8 @@ using SkiaSharp;
 namespace SkiaMonoGameRendering.Raylib
 {
     /// <summary>
-    /// Owns the Skia-dedicated GL context (see <see cref="Wgl"/>) for one raylib window, plus the
+    /// Owns the Skia-dedicated GL context (see <see cref="IPlatformGlContext"/>: <see cref="Wgl"/>
+    /// on Windows, <see cref="Glx"/> on Linux) for one raylib window, plus the
     /// <see cref="GRContext"/>/<see cref="GlFunctions"/> loaded against it. Callers are responsible
     /// for bracketing any Skia GL work with <see cref="BeginDraw"/>/<see cref="EndDraw"/> - the
     /// other members assume the Skia context is already current, mirroring how
@@ -12,9 +13,20 @@ namespace SkiaMonoGameRendering.Raylib
     /// </summary>
     internal sealed class SkiaRaylibContext : IDisposable
     {
-        private readonly Wgl _wgl = new();
+        private readonly IPlatformGlContext _platform = CreatePlatformGlContext();
         private GRContext? _grContext;
         private GlFunctions? _gl;
+
+        private static IPlatformGlContext CreatePlatformGlContext()
+        {
+            if (OperatingSystem.IsWindows())
+                return new Wgl();
+            if (OperatingSystem.IsLinux())
+                return new Glx();
+
+            throw new PlatformNotSupportedException(
+                "SkiaMonoGameRendering.Raylib requires Windows (WGL) or Linux (GLX). macOS is not implemented (see issue #10).");
+        }
 
         public void Initialize()
         {
@@ -24,29 +36,29 @@ namespace SkiaMonoGameRendering.Raylib
                 windowHandle = (IntPtr)Raylib_cs.Raylib.GetWindowHandle();
             }
 
-            _wgl.CreateSharedContext(windowHandle);
+            _platform.CreateSharedContext(windowHandle);
 
-            _wgl.MakeSkiaContextCurrent();
+            _platform.MakeSkiaContextCurrent();
             try
             {
-                _gl = GlFunctions.Load(new WglGlFunctionLoader(_wgl));
+                _gl = GlFunctions.Load(new PlatformGlFunctionLoader(_platform));
                 _grContext = GRContext.CreateGl();
             }
             finally
             {
-                _wgl.MakeEngineContextCurrent();
+                _platform.MakeEngineContextCurrent();
             }
         }
 
         internal void BeginDraw()
         {
-            _wgl.MakeSkiaContextCurrent();
+            _platform.MakeSkiaContextCurrent();
             GrContext.ResetContext();
         }
 
         internal void EndDraw()
         {
-            _wgl.MakeEngineContextCurrent();
+            _platform.MakeEngineContextCurrent();
         }
 
         internal (SKSurface surface, GRBackendRenderTarget renderTarget) CreateSurface(
