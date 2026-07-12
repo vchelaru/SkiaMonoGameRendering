@@ -38,7 +38,8 @@
     <Compile Include="..\SkiaMonoGameRendering\SkiaBackend.cs" Link="Core\SkiaBackend.cs" />
     <Compile Include="..\SkiaMonoGameRendering\SkiaRenderer.cs" Link="Core\SkiaRenderer.cs" />
     <Compile Include="..\SkiaMonoGameRendering\SkiaTarget.cs" Link="Core\SkiaTarget.cs" />
-    <Compile Include="..\SkiaMonoGameRendering\ISkiaRenderable.cs" Link="Core\ISkiaRenderable.cs" />
+    <Compile Include="..\SkiaMonoGameRendering\SkiaRenderTarget2D.cs" Link="Core\SkiaRenderTarget2D.cs" />
+    <Compile Include="..\SkiaMonoGameRendering\SkiaSpriteBatchExtensions.cs" Link="Core\SkiaSpriteBatchExtensions.cs" />
   </ItemGroup>
 
   <ItemGroup>

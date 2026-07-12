@@ -1,59 +1,67 @@
-﻿using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Graphics;
 using SkiaMonoGameRendering;
 using SkiaSharp;
 
 namespace Test
 {
-    internal class SkiaEntity : Entity, ISkiaRenderable
+    internal class SkiaEntity : Entity
     {
-        public int TargetWidth { get => (int)Radius * 2; }
-        public int TargetHeight { get => (int)Radius * 2; }
-        public SKColorType TargetColorFormat { get => SKColorType.Rgba8888; }
-        public bool ShouldRender { get => true; }
-        public bool ClearCanvasOnRender { get => true; }
-        public float Radius { get; set; } = 300;
+        private readonly GraphicsDevice _graphicsDevice;
+        private SkiaRenderTarget2D _canvas;
+        private readonly SKPaint _paint;
+        private bool _paintNeedsUpdate;
+        private SKColor _color = SKColors.Red;
+        private float _radius;
 
-        bool _paintNeedsUpdate;
-        SKColor _color = SKColors.Red;
-        public SKColor Color { get { return _color; } set { _color = value; _paintNeedsUpdate = true; } }
-
-        SKPaint _paint;
-
-        public void Initialize()
+        public float Radius
         {
-            SkiaRenderer.AddRenderable(this);
-        }
-
-        public void Destroy()
-        {
-            SkiaRenderer.RemoveRenderable(this);
-        }
-
-        public void DrawToSurface(SKSurface surface)
-        {
-            // Avoid instancing classes every frame to avoid GC collections
-            if (_paint == null)
+            get => _radius;
+            set
             {
-                _paint = new SKPaint
-                {
-                    Color = Color,
-                    Style = SKPaintStyle.Fill,
-                    IsAntialias = true
-                };
+                if (_radius == value)
+                    return;
+                _radius = value;
+                RecreateCanvas();
             }
+        }
 
+        public SKColor Color
+        {
+            get => _color;
+            set { _color = value; _paintNeedsUpdate = true; }
+        }
+
+        public SkiaEntity(GraphicsDevice graphicsDevice, float radius = 300)
+        {
+            _graphicsDevice = graphicsDevice;
+            _radius = radius;
+            _paint = new SKPaint { Color = _color, Style = SKPaintStyle.Fill, IsAntialias = true };
+            RecreateCanvas();
+        }
+
+        // SkiaRenderTarget2D is fixed-size for its lifetime (like RenderTarget2D) - a radius change
+        // means a new render target, not a resize. Explicit here since the library won't do it
+        // silently anymore.
+        private void RecreateCanvas()
+        {
+            _canvas?.Dispose();
+            _canvas = new SkiaRenderTarget2D(_graphicsDevice, (int)(_radius * 2), (int)(_radius * 2));
+            Texture = _canvas.Texture;
+        }
+
+        public void Draw()
+        {
             if (_paintNeedsUpdate)
             {
                 _paint.Color = Color;
                 _paintNeedsUpdate = false;
             }
 
-            surface.Canvas.DrawCircle(Radius, Radius, Radius, _paint);
+            _canvas.Begin();
+            _canvas.Canvas.DrawCircle(Radius, Radius, Radius, _paint);
+            _canvas.End();
         }
 
-        public void NotifyDrawnTexture(Texture2D texture)
-        {
-            Texture = texture;
-        }
+        public void Destroy() => _canvas.Dispose();
     }
 }

@@ -17,7 +17,8 @@
   <ItemGroup>
     <Compile Include="..\SkiaMonoGameRendering\SkiaBackend.cs" Link="SkiaBackend.cs" />
     <Compile Include="..\SkiaMonoGameRendering\SkiaRenderer.cs" Link="SkiaRenderer.cs" />
-    <Compile Include="..\SkiaMonoGameRendering\ISkiaRenderable.cs" Link="ISkiaRenderable.cs" />
+    <Compile Include="..\SkiaMonoGameRendering\SkiaRenderTarget2D.cs" Link="SkiaRenderTarget2D.cs" />
+    <Compile Include="..\SkiaMonoGameRendering\SkiaSpriteBatchExtensions.cs" Link="SkiaSpriteBatchExtensions.cs" />
     <Compile Include="..\SkiaMonoGameRendering\SkiaTarget.cs" Link="SkiaTarget.cs" />
   </ItemGroup>
 

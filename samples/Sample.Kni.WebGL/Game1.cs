@@ -62,8 +62,7 @@ internal sealed class Game1 : Game
         };
         _backend = new SkiaWebGlBackend(_host, _webGlOptions);
         SkiaRenderer.Initialize(_backend, GraphicsDevice);
-        _gum = new SkiaGumRenderable(480, 300);
-        SkiaRenderer.AddRenderable(_gum);
+        _gum = new SkiaGumRenderable(GraphicsDevice, 480, 300);
         base.Initialize();
     }
 
@@ -110,7 +109,7 @@ internal sealed class Game1 : Game
         _batch.End();
 
         if (!_host.IsContextLost)
-            SkiaRenderer.Draw();
+            _gum!.Draw();
 
         if (_gum!.Texture != null)
         {
@@ -193,7 +192,6 @@ internal sealed class Game1 : Game
         _gum!.ResetTexture();
         _backend = new SkiaWebGlBackend(_host, _webGlOptions);
         SkiaRenderer.Initialize(_backend, GraphicsDevice);
-        SkiaRenderer.AddRenderable(_gum);
         _backendRecreateCount++;
     }
 

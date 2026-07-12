@@ -13,13 +13,26 @@ namespace SkiaMonoGameRendering
         internal abstract void BeginDraw();
         internal abstract void EndDraw();
 
-        internal virtual SkiaTarget CreateTarget(int width, int height, SurfaceFormat format)
+        /// <summary>
+        /// Eagerly allocates the texture and GPU render-target resources for a fixed-size target.
+        /// </summary>
+        internal virtual SkiaTarget CreateTarget(int width, int height, SKColorType colorType)
         {
-            var texture = CreateTexture(width, height, format);
+            var texture = CreateTexture(width, height, ToSurfaceFormat(colorType));
 
             try
             {
-                return new NativeSkiaTarget(this, texture, CaptureTextureHandle(texture));
+                var target = new NativeSkiaTarget(this, texture, CaptureTextureHandle(texture));
+                BeginDraw();
+                try
+                {
+                    target.EnsureSurface(colorType);
+                }
+                finally
+                {
+                    EndDraw();
+                }
+                return target;
             }
             catch
             {
@@ -28,25 +41,41 @@ namespace SkiaMonoGameRendering
             }
         }
 
-        internal virtual void Render(SkiaTarget target, ISkiaRenderable renderable)
+        /// <summary>
+        /// Begins a render pass into <paramref name="target"/>: switches to the Skia GPU context,
+        /// binds the target, and returns the canvas to draw on.
+        /// </summary>
+        internal virtual SKCanvas BeginRender(SkiaTarget target, bool clear)
         {
             var nativeTarget = target as NativeSkiaTarget
                 ?? throw new ArgumentException("The target was not created by this backend.", nameof(target));
 
-            nativeTarget.EnsureSurface(renderable.TargetColorFormat);
+            BeginDraw();
             BindForDrawing(nativeTarget.RenderState!);
+
+            if (clear)
+                nativeTarget.Surface!.Canvas.Clear();
+
+            return nativeTarget.Surface!.Canvas;
+        }
+
+        /// <summary>
+        /// Ends the render pass started by <see cref="BeginRender"/>: flushes Skia's queued GPU
+        /// work, unbinds the target, and switches back to the host engine's GPU context.
+        /// </summary>
+        internal virtual void EndRender(SkiaTarget target)
+        {
+            var nativeTarget = target as NativeSkiaTarget
+                ?? throw new ArgumentException("The target was not created by this backend.", nameof(target));
 
             try
             {
-                if (renderable.ClearCanvasOnRender)
-                    nativeTarget.Surface!.Canvas.Clear();
-
-                renderable.DrawToSurface(nativeTarget.Surface!);
                 nativeTarget.Surface!.Flush();
             }
             finally
             {
                 UnbindAfterDrawing();
+                EndDraw();
             }
         }
 
@@ -63,6 +92,21 @@ namespace SkiaMonoGameRendering
         internal abstract void DisposeRenderState(object renderState);
 
         public abstract void Dispose();
+
+        internal static SurfaceFormat ToSurfaceFormat(SKColorType color)
+        {
+            return color switch
+            {
+                SKColorType.Rgba1010102 => SurfaceFormat.Rgba1010102,
+                SKColorType.Rgba16161616 => SurfaceFormat.Rgba64,
+                SKColorType.Alpha8 => SurfaceFormat.Alpha8,
+#if !FNA
+                SKColorType.Bgra8888 => SurfaceFormat.Bgra32,
+#endif
+                SKColorType.Rg1616 => SurfaceFormat.Rg32,
+                _ => SurfaceFormat.Color,
+            };
+        }
 
         private sealed class NativeSkiaTarget : SkiaTarget
         {
@@ -82,9 +126,6 @@ namespace SkiaMonoGameRendering
 
             public override Texture2D Texture => _texture
                 ?? throw new ObjectDisposedException(nameof(NativeSkiaTarget));
-            public override int Width => Texture.Width;
-            public override int Height => Texture.Height;
-            public override SurfaceFormat Format => Texture.Format;
             internal SKSurface? Surface => _surface;
             internal object? RenderState => _renderState;
 
@@ -94,7 +135,7 @@ namespace SkiaMonoGameRendering
                     return;
 
                 var result = _backend.CreateSurface(
-                    _textureHandle!, Texture, Width, Height, colorType, out var renderState);
+                    _textureHandle!, Texture, Texture.Width, Texture.Height, colorType, out var renderState);
                 _surface = result.surface;
                 _backendRenderTarget = result.renderTarget;
                 _renderState = renderState;

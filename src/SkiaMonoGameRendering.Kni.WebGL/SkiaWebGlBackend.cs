@@ -12,10 +12,10 @@ public sealed class SkiaWebGlBackend : SkiaBackend
     private readonly SkiaMonoGameWebGlHost _host;
     private readonly SkiaWebGlOptions _options;
     private int _ownerThreadId;
-    private bool _isRendering;
     private bool _isDisposed;
     private int _sourceWidth;
     private int _sourceHeight;
+    private long _renderStart;
 
     public SkiaWebGlBackend(SkiaMonoGameWebGlHost host, SkiaWebGlOptions? options = null)
     {
@@ -47,9 +47,10 @@ public sealed class SkiaWebGlBackend : SkiaBackend
     internal override void BeginDraw() => EnsureThread();
     internal override void EndDraw() { }
 
-    internal override SkiaTarget CreateTarget(int width, int height, SurfaceFormat format)
+    internal override SkiaTarget CreateTarget(int width, int height, SKColorType colorType)
     {
         EnsureThread();
+        var format = ToSurfaceFormat(colorType);
         if (format != SurfaceFormat.Color)
             throw new NotSupportedException("The WebGL backend supports SurfaceFormat.Color only.");
 
@@ -57,30 +58,49 @@ public sealed class SkiaWebGlBackend : SkiaBackend
         return new SkiaWebGlTarget(new Texture2D(GraphicsDevice, width, height, false, format));
     }
 
-    internal override void Render(SkiaTarget target, ISkiaRenderable renderable)
+    internal override SKCanvas BeginRender(SkiaTarget target, bool clear)
     {
         EnsureThread();
-        if (_isRendering)
-            throw new InvalidOperationException("SkiaWebGlBackend.Render is not reentrant.");
-        if (target is not SkiaWebGlTarget webTarget)
+        if (target is not SkiaWebGlTarget)
             throw new ArgumentException("The target was not created by this WebGL backend.", nameof(target));
 
-        _isRendering = true;
-        var totalStart = Stopwatch.GetTimestamp();
+        _renderStart = Stopwatch.GetTimestamp();
+        var width = target.Texture.Width;
+        var height = target.Texture.Height;
+
+        if (_sourceWidth != width || _sourceHeight != height)
+        {
+            if (_sourceWidth > 0 && _sourceHeight > 0)
+                Diagnostics.ResizeCount++;
+            _sourceWidth = width;
+            _sourceHeight = height;
+        }
+
+        SKCanvas canvas;
         try
         {
-            if (_sourceWidth != target.Width || _sourceHeight != target.Height)
-            {
-                if (_sourceWidth > 0 && _sourceHeight > 0)
-                    Diagnostics.ResizeCount++;
-                _sourceWidth = target.Width;
-                _sourceHeight = target.Height;
-            }
+            canvas = _host.BeginRenderNow(width, height);
+        }
+        catch (Exception exception)
+        {
+            Diagnostics.DroppedFrameCount++;
+            throw CreateRenderException("Skia render", target, exception);
+        }
 
+        if (clear)
+            canvas.Clear();
+        return canvas;
+    }
+
+    internal override void EndRender(SkiaTarget target)
+    {
+        var webTarget = (SkiaWebGlTarget)target;
+        try
+        {
             BrowserCanvasSource source;
             try
             {
-                source = _host.RenderNow(target.Width, target.Height, renderable);
+                source = _host.EndRenderNow();
             }
             catch (Exception exception)
             {
@@ -105,13 +125,12 @@ public sealed class SkiaWebGlBackend : SkiaBackend
             }
 
             Diagnostics.UploadCount++;
-            Diagnostics.BytesUploaded += (long)target.Width * target.Height * 4;
+            Diagnostics.BytesUploaded += (long)webTarget.Texture.Width * webTarget.Texture.Height * 4;
         }
         finally
         {
             if (_options.EnableDiagnostics)
-                Diagnostics.LastRenderCpuMilliseconds = Stopwatch.GetElapsedTime(totalStart).TotalMilliseconds;
-            _isRendering = false;
+                Diagnostics.LastRenderCpuMilliseconds = Stopwatch.GetElapsedTime(_renderStart).TotalMilliseconds;
         }
     }
 
@@ -135,7 +154,7 @@ public sealed class SkiaWebGlBackend : SkiaBackend
     }
 
     private InvalidOperationException CreateRenderException(string stage, SkiaTarget target, Exception inner) =>
-        new($"WebGL {stage} failed for {target.Width}x{target.Height} RGBA8 " +
+        new($"WebGL {stage} failed for {target.Texture.Width}x{target.Texture.Height} RGBA8 " +
             $"using {Diagnostics.UploadPath}; contextLost={_host.IsContextLost}; " +
             $"browserContext='{_host.WebGlVersion}'; cause={inner.GetType().Name}: {inner.Message}", inner);
 
@@ -179,9 +198,6 @@ public sealed class SkiaWebGlBackend : SkiaBackend
         internal SkiaWebGlTarget(Texture2D texture) => _texture = texture;
         public override Texture2D Texture => _texture
             ?? throw new ObjectDisposedException(nameof(SkiaWebGlTarget));
-        public override int Width => Texture.Width;
-        public override int Height => Texture.Height;
-        public override SurfaceFormat Format => Texture.Format;
         internal override void DisposeSkiaResources() { }
         internal override void DisposeGraphicsResources()
         {

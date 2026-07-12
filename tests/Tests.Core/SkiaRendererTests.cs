@@ -27,121 +27,123 @@ public sealed class SkiaRendererTests : IDisposable
     }
 
     [Fact]
-    public void Draw_ReusesTargetAndRecreatesItOnResize()
+    public void Constructing_AutoInitializesAndCreatesTargetEagerly()
     {
-        var backend = InitializeBackend();
-        var renderable = new FakeRenderable();
-        SkiaRenderer.AddRenderable(renderable);
+        var backend = new FakeBackend();
+        SkiaRenderer.Initialize(backend, _graphicsDevice);
 
-        SkiaRenderer.Draw();
-        SkiaRenderer.Draw();
-        renderable.Width = 64;
-        SkiaRenderer.Draw();
+        using var target = new SkiaRenderTarget2D(_graphicsDevice, 32, 32);
 
-        Assert.Equal(2, backend.CreatedTargets.Count);
-        Assert.Equal(3, backend.RenderCount);
-        Assert.Equal(3, renderable.NotifyCount);
+        Assert.Equal(1, backend.InitializeCount);
+        Assert.Single(backend.CreatedTargets);
+        Assert.Same(backend.CreatedTargets[0].Texture, target.Texture);
+    }
+
+    [Fact]
+    public void Constructing_WithDifferentGraphicsDeviceThanInitializedThrows()
+    {
+        SkiaRenderer.Initialize(new FakeBackend(), _graphicsDevice);
+        var otherDevice = (GraphicsDevice)RuntimeHelpers.GetUninitializedObject(typeof(GraphicsDevice));
+
+        Assert.Throws<InvalidOperationException>(() => new SkiaRenderTarget2D(otherDevice, 32, 32));
+    }
+
+    [Fact]
+    public void Canvas_ThrowsOutsideBeginEndWindow()
+    {
+        var backend = new FakeBackend();
+        SkiaRenderer.Initialize(backend, _graphicsDevice);
+        using var target = new SkiaRenderTarget2D(_graphicsDevice, 32, 32);
+
+        Assert.Throws<InvalidOperationException>(() => target.Canvas);
+
+        target.Begin();
+        Assert.NotNull(target.Canvas);
+        target.End();
+
+        Assert.Throws<InvalidOperationException>(() => target.Canvas);
+    }
+
+    [Fact]
+    public void Begin_ThrowsIfCalledAgainBeforeEnd()
+    {
+        var backend = new FakeBackend();
+        SkiaRenderer.Initialize(backend, _graphicsDevice);
+        using var target = new SkiaRenderTarget2D(_graphicsDevice, 32, 32);
+
+        target.Begin();
+
+        Assert.Throws<InvalidOperationException>(() => target.Begin());
+
+        target.End();
+    }
+
+    [Fact]
+    public void End_ThrowsIfBeginWasNotCalled()
+    {
+        var backend = new FakeBackend();
+        SkiaRenderer.Initialize(backend, _graphicsDevice);
+        using var target = new SkiaRenderTarget2D(_graphicsDevice, 32, 32);
+
+        Assert.Throws<InvalidOperationException>(() => target.End());
+    }
+
+    [Fact]
+    public void Begin_DoesNotLockOutRetryWhenBeginRenderThrows()
+    {
+        var backend = new FakeBackend();
+        SkiaRenderer.Initialize(backend, _graphicsDevice);
+        using var target = new SkiaRenderTarget2D(_graphicsDevice, 32, 32);
+
+        backend.BeginRenderException = new InvalidOperationException("expected");
+        Assert.Throws<InvalidOperationException>(() => target.Begin());
+
+        backend.BeginRenderException = null;
+        target.Begin();
+        target.End();
+
+        Assert.Equal(2, backend.BeginRenderCount);
+        Assert.Equal(1, backend.EndRenderCount);
+    }
+
+    [Fact]
+    public void Dispose_ThrowsBetweenBeginAndEndThenSucceedsAfterEnd()
+    {
+        var backend = new FakeBackend();
+        SkiaRenderer.Initialize(backend, _graphicsDevice);
+        var target = new SkiaRenderTarget2D(_graphicsDevice, 32, 32);
+
+        target.Begin();
+        Assert.Throws<InvalidOperationException>(target.Dispose);
+
+        target.End();
+        target.Dispose();
+
         Assert.Equal(1, backend.CreatedTargets[0].SkiaDisposeCount);
         Assert.Equal(1, backend.CreatedTargets[0].GraphicsDisposeCount);
-        Assert.Equal(1, SkiaRenderer.TextureCount);
     }
 
     [Fact]
-    public void RemoveRenderable_DisposesEvenWhenNoRenderableIsDirty()
+    public void SkiaRenderer_Dispose_TearsDownBackend()
     {
-        var backend = InitializeBackend();
-        var renderable = new FakeRenderable();
-        SkiaRenderer.AddRenderable(renderable);
-        SkiaRenderer.Draw();
-        renderable.ShouldRenderValue = false;
-
-        SkiaRenderer.RemoveRenderable(renderable);
-        SkiaRenderer.Draw();
-
-        Assert.Equal(0, SkiaRenderer.RenderableCount);
-        Assert.Equal(0, SkiaRenderer.TextureCount);
-        Assert.Equal(1, backend.CreatedTargets[0].SkiaDisposeCount);
-        Assert.Equal(1, backend.CreatedTargets[0].GraphicsDisposeCount);
-    }
-
-    [Fact]
-    public void Draw_DoesNotNotifyAndRestoresBackendWhenRenderFails()
-    {
-        var backend = InitializeBackend();
-        backend.RenderException = new InvalidOperationException("expected");
-        var renderable = new FakeRenderable();
-        SkiaRenderer.AddRenderable(renderable);
-
-        Assert.Throws<InvalidOperationException>(SkiaRenderer.Draw);
-
-        Assert.Equal(0, renderable.NotifyCount);
-        Assert.Equal(backend.BeginCount, backend.EndCount);
-    }
-
-    [Fact]
-    public void Dispose_ReleasesTargetsBackendAndStaticState()
-    {
-        var backend = InitializeBackend();
-        SkiaRenderer.AddRenderable(new FakeRenderable());
-        SkiaRenderer.Draw();
+        var backend = new FakeBackend();
+        SkiaRenderer.Initialize(backend, _graphicsDevice);
 
         SkiaRenderer.Dispose();
 
         Assert.True(backend.IsDisposed);
-        Assert.Equal(1, backend.CreatedTargets[0].SkiaDisposeCount);
-        Assert.Equal(1, backend.CreatedTargets[0].GraphicsDisposeCount);
         Assert.False(SkiaRenderer.IsInitialized);
-        Assert.Equal(0, SkiaRenderer.RenderableCount);
-    }
-
-    [Fact]
-    public void Dispose_ClearsStaticStateWhenBackendDisposeFails()
-    {
-        var backend = InitializeBackend();
-        backend.DisposeException = new InvalidOperationException("expected");
-        SkiaRenderer.AddRenderable(new FakeRenderable());
-        SkiaRenderer.Draw();
-
-        Assert.Throws<InvalidOperationException>(SkiaRenderer.Dispose);
-
-        Assert.False(SkiaRenderer.IsInitialized);
-        Assert.Equal(0, SkiaRenderer.RenderableCount);
-        Assert.Equal(1, backend.CreatedTargets[0].GraphicsDisposeCount);
     }
 
     public void Dispose() => SkiaRenderer.Dispose();
 
-    private FakeBackend InitializeBackend()
-    {
-        var backend = new FakeBackend();
-        SkiaRenderer.Initialize(backend, _graphicsDevice);
-        return backend;
-    }
-
-    private sealed class FakeRenderable : ISkiaRenderable
-    {
-        public int Width { get; set; } = 32;
-        public int Height { get; set; } = 32;
-        public bool ShouldRenderValue { get; set; } = true;
-        public int NotifyCount { get; private set; }
-        public int TargetWidth => Width;
-        public int TargetHeight => Height;
-        public SKColorType TargetColorFormat => SKColorType.Rgba8888;
-        public bool ShouldRender => ShouldRenderValue;
-        public bool ClearCanvasOnRender => true;
-        public void DrawToSurface(SKSurface surface) { }
-        public void NotifyDrawnTexture(Texture2D texture) => NotifyCount++;
-    }
-
     private sealed class FakeBackend : SkiaBackend
     {
         public int InitializeCount { get; private set; }
-        public int BeginCount { get; private set; }
-        public int EndCount { get; private set; }
-        public int RenderCount { get; private set; }
+        public int BeginRenderCount { get; private set; }
+        public int EndRenderCount { get; private set; }
         public bool IsDisposed { get; private set; }
-        public Exception? RenderException { get; set; }
-        public Exception? DisposeException { get; set; }
+        public Exception? BeginRenderException { get; set; }
         public List<FakeTarget> CreatedTargets { get; } = new();
         public override GRContext GRContext => null!;
 
@@ -151,22 +153,25 @@ public sealed class SkiaRendererTests : IDisposable
             InitializeCount++;
         }
 
-        internal override void BeginDraw() => BeginCount++;
-        internal override void EndDraw() => EndCount++;
+        internal override void BeginDraw() { }
+        internal override void EndDraw() { }
 
-        internal override SkiaTarget CreateTarget(int width, int height, SurfaceFormat format)
+        internal override SkiaTarget CreateTarget(int width, int height, SKColorType colorType)
         {
-            var target = new FakeTarget(width, height, format);
+            var target = new FakeTarget();
             CreatedTargets.Add(target);
             return target;
         }
 
-        internal override void Render(SkiaTarget target, ISkiaRenderable renderable)
+        internal override SKCanvas BeginRender(SkiaTarget target, bool clear)
         {
-            RenderCount++;
-            if (RenderException != null)
-                throw RenderException;
+            BeginRenderCount++;
+            if (BeginRenderException != null)
+                throw BeginRenderException;
+            return ((FakeTarget)target).Canvas;
         }
+
+        internal override void EndRender(SkiaTarget target) => EndRenderCount++;
 
         internal override object CaptureTextureHandle(Texture2D texture) => throw new NotSupportedException();
         internal override (SKSurface surface, GRBackendRenderTarget renderTarget) CreateSurface(
@@ -175,36 +180,27 @@ public sealed class SkiaRendererTests : IDisposable
         internal override void BindForDrawing(object renderState) => throw new NotSupportedException();
         internal override void UnbindAfterDrawing() => throw new NotSupportedException();
         internal override void DisposeRenderState(object renderState) => throw new NotSupportedException();
-        public override void Dispose()
-        {
-            IsDisposed = true;
-            if (DisposeException != null)
-                throw DisposeException;
-        }
+
+        public override void Dispose() => IsDisposed = true;
     }
 
     private sealed class FakeTarget : SkiaTarget
     {
         private static readonly Texture2D DummyTexture =
             (Texture2D)RuntimeHelpers.GetUninitializedObject(typeof(Texture2D));
+        private readonly SKSurface _surface = SKSurface.Create(new SKImageInfo(1, 1));
 
-        public FakeTarget(int width, int height, SurfaceFormat format)
-        {
-            WidthValue = width;
-            HeightValue = height;
-            FormatValue = format;
-        }
-
-        private int WidthValue { get; }
-        private int HeightValue { get; }
-        private SurfaceFormat FormatValue { get; }
         public int SkiaDisposeCount { get; private set; }
         public int GraphicsDisposeCount { get; private set; }
         public override Texture2D Texture => DummyTexture;
-        public override int Width => WidthValue;
-        public override int Height => HeightValue;
-        public override SurfaceFormat Format => FormatValue;
-        internal override void DisposeSkiaResources() => SkiaDisposeCount++;
+        internal SKCanvas Canvas => _surface.Canvas;
+
+        internal override void DisposeSkiaResources()
+        {
+            SkiaDisposeCount++;
+            _surface.Dispose();
+        }
+
         internal override void DisposeGraphicsResources() => GraphicsDisposeCount++;
     }
 }

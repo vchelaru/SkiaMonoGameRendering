@@ -38,8 +38,6 @@ namespace Test
 
         protected override void Initialize()
         {
-            SkiaRenderer.Initialize(new SkiaGlBackend(), GraphicsDevice);
-
             base.Initialize();
         }
 
@@ -63,8 +61,6 @@ namespace Test
 
         protected override void Draw(GameTime gameTime)
         {
-            SkiaRenderer.Draw();
-
             GraphicsDevice.Clear(Color.Black);
 
             DrawEntities();
@@ -83,9 +79,8 @@ namespace Test
 
             if (InputManager.KeyPushed(Keys.Add))
             {
-                var newEntity = new SkiaEntity();
+                var newEntity = new SkiaEntity(GraphicsDevice, _skiaEntityRadius);
                 _skiaEntities.Add(newEntity);
-                newEntity.Initialize();
                 UpdateEntityProperties(newEntity);
             }
             else if (InputManager.KeyPushed(Keys.Subtract))
@@ -174,6 +169,10 @@ namespace Test
         {
             int centerScreenX = _graphics.GraphicsDevice.Viewport.Width / 2;
             int centerScreenY = _graphics.GraphicsDevice.Viewport.Height / 2;
+
+            // Render each Skia entity's canvas before compositing any of them.
+            for (int i = 0; i < _skiaEntities.Count; i++)
+                _skiaEntities[i].Draw();
 
             _spriteBatch.Begin(SpriteSortMode.Deferred);
 

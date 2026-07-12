@@ -24,6 +24,7 @@ public partial class SkiaMonoGameWebGlHost : ComponentBase, IAsyncDisposable
     private int _surfaceHeight;
     private int _ownerThreadId;
     private bool _isRendering;
+    private int _activeSaveCount;
     private bool _isDisposed;
     private bool _isContextLost;
 
@@ -126,32 +127,35 @@ public partial class SkiaMonoGameWebGlHost : ComponentBase, IAsyncDisposable
         }
     }
 
-    internal BrowserCanvasSource RenderNow(int physicalWidth, int physicalHeight, ISkiaRenderable renderable)
+    /// <summary>
+    /// Begins a render pass: prepares the frame, ensures the surface exists, and returns its
+    /// canvas. Pair with <see cref="EndRenderNow"/>. Used by <c>SkiaWebGlBackend</c> so a
+    /// <see cref="SkiaMonoGameRendering.SkiaRenderTarget2D"/>'s Begin/End can hold the canvas open
+    /// across arbitrary caller code, instead of requiring a single atomic draw callback.
+    /// </summary>
+    internal SKCanvas BeginRenderNow(int physicalWidth, int physicalHeight)
     {
-        ArgumentNullException.ThrowIfNull(renderable);
         EnsureUsable();
         if (_isRendering)
             throw new InvalidOperationException("Skia WebGL rendering is not reentrant.");
 
         _isRendering = true;
+        PrepareFrame(physicalWidth, physicalHeight);
+        _activeSaveCount = _surface!.Canvas.Save();
+        return _surface.Canvas;
+    }
+
+    /// <summary>
+    /// Ends the render pass started by <see cref="BeginRenderNow"/>: flushes Skia's queued GPU
+    /// work and returns the browser canvas source to upload from.
+    /// </summary>
+    internal BrowserCanvasSource EndRenderNow()
+    {
         try
         {
-            var source = PrepareFrame(physicalWidth, physicalHeight);
-            var canvas = _surface!.Canvas;
-            var saveCount = canvas.Save();
-            try
-            {
-                if (renderable.ClearCanvasOnRender)
-                    canvas.Clear();
-                renderable.DrawToSurface(_surface);
-            }
-            finally
-            {
-                canvas.RestoreToCount(saveCount);
-            }
-
+            _surface!.Canvas.RestoreToCount(_activeSaveCount);
             FlushFrame();
-            return source;
+            return new BrowserCanvasSource(CanvasElementId, _surfaceWidth, _surfaceHeight);
         }
         finally
         {
