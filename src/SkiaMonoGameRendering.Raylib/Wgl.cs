@@ -23,13 +23,12 @@ namespace SkiaMonoGameRendering.Raylib
     /// </para>
     /// <para>
     /// raylib statically links GLFW and doesn't export its context-creation entry points, so this
-    /// goes straight to Win32/WGL instead of GLFW. Windows-only; the same shared-context
-    /// requirement almost certainly holds on Linux/macOS too (rlgl's own state isn't
-    /// platform-specific), but getting a second context there means GLX/EGL calls instead - not
-    /// implemented here.
+    /// goes straight to Win32/WGL instead of GLFW. Windows-only implementation of
+    /// <see cref="IPlatformGlContext"/> - see <see cref="Glx"/> for the Linux/X11 equivalent (GLX
+    /// instead of WGL). macOS is not implemented (see issue #10).
     /// </para>
     /// </summary>
-    internal sealed class Wgl
+    internal sealed class Wgl : IPlatformGlContext
     {
         [DllImport("user32.dll")]
         private static extern IntPtr GetDC(IntPtr hWnd);
