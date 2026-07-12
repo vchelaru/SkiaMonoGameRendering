@@ -46,7 +46,7 @@ The zero-copy texture-sharing pattern has two requirements:
 | MonoGame backend | MG version | Skia backend path | Status |
 |---|---|---|---|
 | DesktopGL (OpenGL) | 3.8.4+ | Native GL (`GRContext.CreateGl`) | **Done** — this library |
-| WindowsDX (D3D11) | 3.8.4 | ANGLE (GL ES → D3D11) | Feasible, not implemented |
+| WindowsDX (D3D11) | 3.8.4 | ANGLE (GL ES → D3D11) | **Done** — see section 7 |
 | D3D12 | 3.8.5 (preview) | Native Skia D3D12 (`GRContext.CreateDirect3D`) *or* ANGLE-on-D3D12 | Both partially unready — see below |
 | Vulkan | 3.8.5 (preview) | Native Skia Vulkan (`GRContext.CreateVulkan`) *or* ANGLE-on-Vulkan | Most promising 3.8.5 target |
 | Metal | (not MG) | `GRContext.CreateMetal` | Not applicable |
@@ -213,9 +213,9 @@ Full discussion is in a dedicated document: **`WebGL-KNI-Integration.md`** at th
 - The four options (A: shared WebGL context; B: CPU readback; C: two-canvas overlay; D: cross-context GPU blit via `texImage2D(canvas)`) with comparison table.
 - Why Option D is the recommended path, plus the `OffscreenCanvas + transferToImageBitmap` fast-path variant.
 - Option A reconsidered with a KNI-side `InvalidateStateCache()` patch reducing its implementation cost significantly.
-- Spike v0 status: standalone HTML in `spikes/webgl-blit-v0/`, initial results (Chrome/Edge ~0.25 ms, Firefox ~25 ms), four alternative upload paths added to test whether any rescue Firefox.
+- Spike v0 findings (spike since concluded and removed from the repo): initial results (Chrome/Edge ~0.25 ms, Firefox ~25 ms), four alternative upload paths identified to test whether any rescue Firefox.
 - KNI-side changes worth making if forking KNI, and which of them are upstreamable to KNI vs better kept downstream.
-- Where to pick up: finish v0 Firefox measurements, then v1 (real KNI canvas), then v2 (full interleaving demo).
+- Where to pick up: the Firefox upload-path question is now tracked in [issue #5](https://github.com/vchelaru/SkiaMonoGameRendering/issues/5) alongside the rest of the WebGL hardware-acceptance benchmark work; v1 (real KNI canvas) and v2 (full interleaving demo) followed and are done — see the integrated `Sample.Kni.WebGL`.
 
 Short version of the recommendation: **build Option D**, which on Chrome/Edge measures ~0.25 ms upload at 1080p; Firefox unknown pending alternative-path measurement; fall back to Option A (with the KNI-fork state-cache patch) only if Firefox can't be rescued.
 

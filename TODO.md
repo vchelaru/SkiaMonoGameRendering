@@ -44,7 +44,8 @@ Because MonoGame.Framework.DesktopGL and MonoGame.Framework.WindowsDX are separa
 
 ## Next Steps
 
-1. Run and archive the hardware benchmark matrix in `benchmarks/Benchmarks.WebGL/`.
+1. Run and archive the hardware benchmark matrix in `benchmarks/Benchmarks.WebGL/` — tracked in [issue #5](https://github.com/vchelaru/SkiaMonoGameRendering/issues/5).
 2. Address the desktop ANGLE DLL and lazy-allocation issues above.
+3. Split per-graphics-API core libraries out of the per-engine adapters so a new engine (raylib) can reuse the GL/Skia interop instead of duplicating it — tracked in [issue #3](https://github.com/vchelaru/SkiaMonoGameRendering/issues/3). The OGL split (`src/SkiaMonoGameRendering.Core.OGL/`) landed via [#4](https://github.com/vchelaru/SkiaMonoGameRendering/pull/4); ANGLE and WebGL are intentionally sequenced later, once a second consumer exists to prove the interface against.
 
 See [issue #2](https://github.com/vchelaru/SkiaMonoGameRendering/issues/2) for the pending KNI upstream dependency (`eng/patches/kni-webgl-canvas-upload.patch` shrink, once kniEngine/kni#2669 lands).
