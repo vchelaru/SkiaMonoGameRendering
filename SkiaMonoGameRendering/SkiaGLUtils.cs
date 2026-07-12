@@ -1,92 +1,14 @@
-﻿using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Graphics;
+using SkiaMonoGameRendering.Core.OGL;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using static SkiaMonoGameRendering.GlConstants;
 
 namespace SkiaMonoGameRendering
 {
-    internal class GlConstants
+    internal static class SdlGlConstants
     {
         public const int SDL_GL_SHARE_WITH_CURRENT_CONTEXT = 22;
-        public const int GL_ALL_ATTRIB_BITS = 0xfffff;
-        public const int GL_SAMPLES = 0x80a9;
         public const int GL_TEXTURE_BINDING_2D = 0x8069;
-
-        internal enum RenderbufferTarget
-        {
-            Renderbuffer = 0x8D41,
-            RenderbufferExt = 0x8D41,
-        }
-
-        internal enum FramebufferTarget
-        {
-            Framebuffer = 0x8D40,
-            FramebufferExt = 0x8D40,
-            ReadFramebuffer = 0x8CA8,
-        }
-
-        internal enum RenderbufferStorage
-        {
-            Rgba8 = 0x8058,
-            DepthComponent16 = 0x81a5,
-            DepthComponent24 = 0x81a6,
-            Depth24Stencil8 = 0x88F0,
-            // GLES Values
-            DepthComponent24Oes = 0x81A6,
-            Depth24Stencil8Oes = 0x88F0,
-            StencilIndex8 = 0x8D48,
-        }
-
-        internal enum FramebufferAttachment
-        {
-            ColorAttachment0 = 0x8CE0,
-            ColorAttachment0Ext = 0x8CE0,
-            DepthAttachment = 0x8D00,
-            StencilAttachment = 0x8D20,
-            ColorAttachmentExt = 0x1800,
-            DepthAttachementExt = 0x1801,
-            StencilAttachmentExt = 0x1802,
-        }
-
-        internal enum TextureTarget
-        {
-            Texture2D = 0x0DE1,
-            Texture3D = 0x806F,
-            TextureCubeMap = 0x8513,
-            TextureCubeMapPositiveX = 0x8515,
-            TextureCubeMapPositiveY = 0x8517,
-            TextureCubeMapPositiveZ = 0x8519,
-            TextureCubeMapNegativeX = 0x8516,
-            TextureCubeMapNegativeY = 0x8518,
-            TextureCubeMapNegativeZ = 0x851A,
-        }
-
-        internal enum FramebufferErrorCode
-        {
-            FramebufferUndefined = 0x8219,
-            FramebufferComplete = 0x8CD5,
-            FramebufferCompleteExt = 0x8CD5,
-            FramebufferIncompleteAttachment = 0x8CD6,
-            FramebufferIncompleteAttachmentExt = 0x8CD6,
-            FramebufferIncompleteMissingAttachment = 0x8CD7,
-            FramebufferIncompleteMissingAttachmentExt = 0x8CD7,
-            FramebufferIncompleteDimensionsExt = 0x8CD9,
-            FramebufferIncompleteFormatsExt = 0x8CDA,
-            FramebufferIncompleteDrawBuffer = 0x8CDB,
-            FramebufferIncompleteDrawBufferExt = 0x8CDB,
-            FramebufferIncompleteReadBuffer = 0x8CDC,
-            FramebufferIncompleteReadBufferExt = 0x8CDC,
-            FramebufferUnsupported = 0x8CDD,
-            FramebufferUnsupportedExt = 0x8CDD,
-            FramebufferIncompleteMultisample = 0x8D56,
-            FramebufferIncompleteLayerTargets = 0x8DA8,
-            FramebufferIncompleteLayerCount = 0x8DA9,
-        }
-
-        internal enum ErrorCode
-        {
-            NoError = 0,
-        }
     }
 
     internal static class GlWrapper
@@ -172,7 +94,7 @@ namespace SkiaMonoGameRendering
             return (int)_makeCurrentMethod.Invoke(_makeCurrentValue, makeCurrentArray);
         }
 
-        internal static T LoadFunction<T>(string nativeMethodName)
+        internal static T LoadFunction<T>(string nativeMethodName) where T : Delegate
         {
             var method = _loadFunctionMethod.MakeGenericMethod(new Type[] { typeof(T) });
             return (T)method.Invoke(null, new object[] { nativeMethodName, false });
@@ -202,117 +124,14 @@ namespace SkiaMonoGameRendering
                 }
             }
         }
-
-        /// <summary>
-        /// OpenGL functions wrapper for the Skia context.
-        /// </summary>
-        internal static class SkGlFunctions
-        {
-            [System.Security.SuppressUnmanagedCodeSecurity()]
-            [UnmanagedFunctionPointer(callingConvention)]
-            [NativeFunctionWrapper]
-            internal delegate void GenRenderbuffersDelegate(int count, [Out] out int buffer);
-            internal static GenRenderbuffersDelegate GenRenderbuffers;
-
-            [System.Security.SuppressUnmanagedCodeSecurity()]
-            [UnmanagedFunctionPointer(callingConvention)]
-            [NativeFunctionWrapper]
-            internal delegate void BindRenderbufferDelegate(RenderbufferTarget target, int buffer);
-            internal static BindRenderbufferDelegate BindRenderbuffer;
-
-            [System.Security.SuppressUnmanagedCodeSecurity()]
-            [UnmanagedFunctionPointer(callingConvention)]
-            [NativeFunctionWrapper]
-            internal delegate void DeleteRenderbuffersDelegate(int count, [In][Out] ref int buffer);
-            internal static DeleteRenderbuffersDelegate DeleteRenderbuffers;
-
-            [System.Security.SuppressUnmanagedCodeSecurity()]
-            [UnmanagedFunctionPointer(callingConvention)]
-            [NativeFunctionWrapper]
-            internal delegate void GenFramebuffersDelegate(int count, out int buffer);
-            internal static GenFramebuffersDelegate GenFramebuffers;
-
-            [System.Security.SuppressUnmanagedCodeSecurity()]
-            [UnmanagedFunctionPointer(callingConvention)]
-            [NativeFunctionWrapper]
-            internal delegate void BindFramebufferDelegate(FramebufferTarget target, int buffer);
-            internal static BindFramebufferDelegate BindFramebuffer;
-
-            [System.Security.SuppressUnmanagedCodeSecurity()]
-            [UnmanagedFunctionPointer(callingConvention)]
-            [NativeFunctionWrapper]
-            internal delegate void DeleteFramebuffersDelegate(int count, ref int buffer);
-            internal static DeleteFramebuffersDelegate DeleteFramebuffers;
-
-            [System.Security.SuppressUnmanagedCodeSecurity()]
-            [UnmanagedFunctionPointer(callingConvention)]
-            [NativeFunctionWrapper]
-            public delegate void InvalidateFramebufferDelegate(FramebufferTarget target, int numAttachments, FramebufferAttachment[] attachments);
-            public static InvalidateFramebufferDelegate InvalidateFramebuffer;
-
-            [System.Security.SuppressUnmanagedCodeSecurity()]
-            [UnmanagedFunctionPointer(callingConvention)]
-            [NativeFunctionWrapper]
-            internal delegate void FramebufferTexture2DDelegate(FramebufferTarget target, FramebufferAttachment attachement,
-                TextureTarget textureTarget, int texture, int level);
-            internal static FramebufferTexture2DDelegate FramebufferTexture2D;
-
-            [System.Security.SuppressUnmanagedCodeSecurity()]
-            [UnmanagedFunctionPointer(callingConvention)]
-            [NativeFunctionWrapper]
-            internal delegate void FramebufferRenderbufferDelegate(FramebufferTarget target, FramebufferAttachment attachement,
-                RenderbufferTarget renderBufferTarget, int buffer);
-            internal static FramebufferRenderbufferDelegate FramebufferRenderbuffer;
-
-            [System.Security.SuppressUnmanagedCodeSecurity()]
-            [UnmanagedFunctionPointer(callingConvention)]
-            [NativeFunctionWrapper]
-            public delegate void RenderbufferStorageDelegate(RenderbufferTarget target, RenderbufferStorage storage, int width, int hegiht);
-            public static RenderbufferStorageDelegate RenderbufferStorage;
-
-            [System.Security.SuppressUnmanagedCodeSecurity()]
-            [UnmanagedFunctionPointer(callingConvention)]
-            [NativeFunctionWrapper]
-            internal delegate FramebufferErrorCode CheckFramebufferStatusDelegate(FramebufferTarget target);
-            internal static CheckFramebufferStatusDelegate CheckFramebufferStatus;
-
-            [System.Security.SuppressUnmanagedCodeSecurity()]
-            [UnmanagedFunctionPointer(callingConvention)]
-            [NativeFunctionWrapper]
-            internal unsafe delegate void GetIntegerDelegate(int param, [Out] int* data);
-            internal static GetIntegerDelegate GetIntegerv;
-
-            internal static readonly FramebufferAttachment[] FramebufferAttachements = {
-                FramebufferAttachment.ColorAttachment0,
-                FramebufferAttachment.DepthAttachment,
-                FramebufferAttachment.StencilAttachment,
-            };
-
-            internal static void LoadFunctions()
-            {
-                GenRenderbuffers = LoadFunction<GenRenderbuffersDelegate>("glGenRenderbuffers");
-                BindRenderbuffer = LoadFunction<BindRenderbufferDelegate>("glBindRenderbuffer");
-                DeleteRenderbuffers = LoadFunction<DeleteRenderbuffersDelegate>("glDeleteRenderbuffers");
-                GenFramebuffers = LoadFunction<GenFramebuffersDelegate>("glGenFramebuffers");
-                BindFramebuffer = LoadFunction<BindFramebufferDelegate>("glBindFramebuffer");
-                DeleteFramebuffers = LoadFunction<DeleteFramebuffersDelegate>("glDeleteFramebuffers");
-                InvalidateFramebuffer = LoadFunction<InvalidateFramebufferDelegate>("glInvalidateFramebuffer");
-                FramebufferTexture2D = LoadFunction<FramebufferTexture2DDelegate>("glFramebufferTexture2D");
-                FramebufferRenderbuffer = LoadFunction<FramebufferRenderbufferDelegate>("glFramebufferRenderbuffer");
-                RenderbufferStorage = LoadFunction<RenderbufferStorageDelegate>("glRenderbufferStorage");
-                CheckFramebufferStatus = LoadFunction<CheckFramebufferStatusDelegate>("glCheckFramebufferStatus");
-
-                GetIntegerv = LoadFunction<GetIntegerDelegate>("glGetIntegerv");
-            }
-
-            internal unsafe static void GetInteger(int name, out int value)
-            {
-                fixed (int* ptr = &value)
-                {
-                    GetIntegerv(name, ptr);
-                }
-            }
-        }
     }
 
+    /// <summary>
+    /// Adapts MonoGame's reflection-based native GL function loading (<see cref="GlWrapper.LoadFunction{T}"/>)
+    /// to the engine-agnostic <see cref="IGlFunctionLoader"/> contract Core.OGL depends on.
+    /// </summary>
+    internal sealed class MonoGameGlFunctionLoader : IGlFunctionLoader
+    {
+        public T Load<T>(string nativeName) where T : Delegate => GlWrapper.LoadFunction<T>(nativeName);
+    }
 }

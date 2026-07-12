@@ -19,6 +19,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SkiaMonoGameRendering.Kni.W
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sample.Kni.WebGL", "Sample.Kni.WebGL\Sample.Kni.WebGL.csproj", "{A9DC3B8E-07B2-4E33-AE46-5CAA48447A4F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SkiaMonoGameRendering.Core.OGL", "SkiaMonoGameRendering.Core.OGL\SkiaMonoGameRendering.Core.OGL.csproj", "{CD623993-F43D-4A16-A10D-4F084D4E0A64}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -176,6 +178,24 @@ Global
 		{A9DC3B8E-07B2-4E33-AE46-5CAA48447A4F}.Release|x64.Build.0 = Release|Any CPU
 		{A9DC3B8E-07B2-4E33-AE46-5CAA48447A4F}.Release|x86.ActiveCfg = Release|Any CPU
 		{A9DC3B8E-07B2-4E33-AE46-5CAA48447A4F}.Release|x86.Build.0 = Release|Any CPU
+		{CD623993-F43D-4A16-A10D-4F084D4E0A64}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CD623993-F43D-4A16-A10D-4F084D4E0A64}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CD623993-F43D-4A16-A10D-4F084D4E0A64}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{CD623993-F43D-4A16-A10D-4F084D4E0A64}.Debug|x64.Build.0 = Debug|Any CPU
+		{CD623993-F43D-4A16-A10D-4F084D4E0A64}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{CD623993-F43D-4A16-A10D-4F084D4E0A64}.Debug|x86.Build.0 = Debug|Any CPU
+		{CD623993-F43D-4A16-A10D-4F084D4E0A64}.Debug2|Any CPU.ActiveCfg = Debug|Any CPU
+		{CD623993-F43D-4A16-A10D-4F084D4E0A64}.Debug2|Any CPU.Build.0 = Debug|Any CPU
+		{CD623993-F43D-4A16-A10D-4F084D4E0A64}.Debug2|x64.ActiveCfg = Debug|Any CPU
+		{CD623993-F43D-4A16-A10D-4F084D4E0A64}.Debug2|x64.Build.0 = Debug|Any CPU
+		{CD623993-F43D-4A16-A10D-4F084D4E0A64}.Debug2|x86.ActiveCfg = Debug|Any CPU
+		{CD623993-F43D-4A16-A10D-4F084D4E0A64}.Debug2|x86.Build.0 = Debug|Any CPU
+		{CD623993-F43D-4A16-A10D-4F084D4E0A64}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CD623993-F43D-4A16-A10D-4F084D4E0A64}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CD623993-F43D-4A16-A10D-4F084D4E0A64}.Release|x64.ActiveCfg = Release|Any CPU
+		{CD623993-F43D-4A16-A10D-4F084D4E0A64}.Release|x64.Build.0 = Release|Any CPU
+		{CD623993-F43D-4A16-A10D-4F084D4E0A64}.Release|x86.ActiveCfg = Release|Any CPU
+		{CD623993-F43D-4A16-A10D-4F084D4E0A64}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
